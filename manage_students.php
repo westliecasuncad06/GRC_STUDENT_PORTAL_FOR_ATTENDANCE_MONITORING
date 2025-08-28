@@ -1,11 +1,13 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'professor') {
     header('Location: index.php');
     exit();
 }
 
 require_once 'db.php';
+
+$professor_id = $_SESSION['user_id'];
 
 // Handle student actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -80,15 +82,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Get all students
+// Get students enrolled in professor's classes
+$query = "SELECT DISTINCT s.* 
+          FROM students s
+          JOIN student_classes sc ON s.student_id = sc.student_id
+          JOIN classes c ON sc.class_id = c.class_id
+          WHERE c.professor_id = ?";
+
 $search = isset($_GET['search']) ? $_GET['search'] : '';
-$query = "SELECT * FROM students";
 if (!empty($search)) {
-    $query .= " WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR student_id LIKE ?";
+    $query .= " AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.email LIKE ? OR s.student_id LIKE ?)";
     $stmt = $pdo->prepare($query);
-    $stmt->execute(["%$search%", "%$search%", "%$search%", "%$search%"]);
+    $stmt->execute([$professor_id, "%$search%", "%$search%", "%$search%", "%$search%"]);
 } else {
-    $stmt = $pdo->query($query);
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$professor_id]);
 }
 $students = $stmt->fetchAll();
 ?>
@@ -108,11 +116,11 @@ $students = $stmt->fetchAll();
             Global Reciprocal College
         </div>
         <div class="navbar-user">
-            <span>Welcome, <?php echo $_SESSION['name']; ?></span>
+            <span>Welcome, Prof. <?php echo $_SESSION['name']; ?></span>
             <div class="user-dropdown">
                 <button class="dropdown-toggle">⚙️</button>
                 <div class="dropdown-menu">
-
+                    <a href="settings.php" class="dropdown-item">Settings</a>
                     <a href="php/logout.php" class="dropdown-item">Logout</a>
                 </div>
             </div>
@@ -123,33 +131,28 @@ $students = $stmt->fetchAll();
     <aside class="sidebar">
         <ul class="sidebar-menu">
             <li class="sidebar-item">
-                <a href="admin_dashboard.php" class="sidebar-link">Dashboard</a>
+                <a href="professor_dashboard.php" class="sidebar-link">Dashboard</a>
             </li>
             <li class="sidebar-item">
-                <a href="admin_manage_professors.php" class="sidebar-link">Manage Professors</a>
+                <a href="manage_students.php" class="sidebar-link active">Students</a>
             </li>
             <li class="sidebar-item">
-                <a href="admin_manage_students.php" class="sidebar-link active">Manage Students</a>
+                <a href="my_classes.php" class="sidebar-link">My Classes</a>
             </li>
             <li class="sidebar-item">
-                <a href="admin_manage_schedule.php" class="sidebar-link">Manage Schedule</a>
+                <a href="my_subjects.php" class="sidebar-link">My Subjects</a>
             </li>
-
+            <li class="sidebar-item">
+                <a href="attendance.php" class="sidebar-link">Attendance</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="settings.php" class="sidebar-link">Settings</a>
+            </li>
         </ul>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-        <div class="table-header">
-            <h2 class="table-title">Manage Students</h2>
-            <div class="table-actions">
-                <input type="text" class="search-input" placeholder="Search students..." 
-                       value="<?php echo htmlspecialchars($search); ?>"
-                       onkeyup="if(event.key === 'Enter') searchStudents(this.value)">
-                <button class="btn btn-primary" onclick="openModal('addStudentModal')">Add Student</button>
-            </div>
-        </div>
-
         <?php if (isset($success)): ?>
             <div class="success-message"><?php echo $success; ?></div>
         <?php endif; ?>
@@ -157,6 +160,16 @@ $students = $stmt->fetchAll();
         <?php if (isset($error)): ?>
             <div class="error-message"><?php echo $error; ?></div>
         <?php endif; ?>
+
+        <div class="table-header">
+            <h2 class="table-title">My Students</h2>
+            <div class="table-actions">
+                <input type="text" class="search-input" placeholder="Search students..." 
+                       value="<?php echo htmlspecialchars($search); ?>"
+                       onkeyup="if(event.key === 'Enter') searchStudents(this.value)">
+                <button class="btn btn-primary" onclick="openModal('addStudentModal')">Add Student</button>
+            </div>
+        </div>
 
         <div class="table-container">
             <table class="table">
@@ -179,7 +192,8 @@ $students = $stmt->fetchAll();
                         <td><?php echo $student['mobile']; ?></td>
                         <td><?php echo $student['address']; ?></td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="editStudent(<?php echo htmlspecialchars(json_encode($student)); ?>)">Edit</button>
+                            <button class="btn btn-sm btn-primary" onclick="viewStudentDetails('<?php echo $student['student_id']; ?>')">View Details</button>
+                            <button class="btn btn-sm btn-warning" onclick="editStudent(<?php echo htmlspecialchars(json_encode($student)); ?>)">Edit</button>
                             <form action="" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="delete_student">
                                 <input type="hidden" name="student_id" value="<?php echo $student['student_id']; ?>">
@@ -190,6 +204,24 @@ $students = $stmt->fetchAll();
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Student Details Modal -->
+        <div id="studentDetailsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Student Details</h3>
+                    <button class="modal-close" onclick="closeModal('studentDetailsModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="studentDetailsContent">
+                        <!-- Student details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('studentDetailsModal')">Close</button>
+                </div>
+            </div>
         </div>
 
         <!-- Add Student Modal -->
@@ -211,12 +243,12 @@ $students = $stmt->fetchAll();
                             <input type="text" name="first_name" required>
                         </div>
                         <div class="form-group">
-                            <label>Last Name</label>
-                            <input type="text" name="last_name" required>
-                        </div>
-                        <div class="form-group">
                             <label>Middle Name</label>
                             <input type="text" name="middle_name">
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" required>
                         </div>
                         <div class="form-group">
                             <label>Email</label>
@@ -232,7 +264,7 @@ $students = $stmt->fetchAll();
                         </div>
                         <div class="form-group">
                             <label>Address</label>
-                            <input type="text" name="address" required>
+                            <textarea name="address" required></textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal('addStudentModal')">Cancel</button>
@@ -259,12 +291,12 @@ $students = $stmt->fetchAll();
                             <input type="text" name="first_name" id="edit_first_name" required>
                         </div>
                         <div class="form-group">
-                            <label>Last Name</label>
-                            <input type="text" name="last_name" id="edit_last_name" required>
-                        </div>
-                        <div class="form-group">
                             <label>Middle Name</label>
                             <input type="text" name="middle_name" id="edit_middle_name">
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" id="edit_last_name" required>
                         </div>
                         <div class="form-group">
                             <label>Email</label>
@@ -276,7 +308,7 @@ $students = $stmt->fetchAll();
                         </div>
                         <div class="form-group">
                             <label>Address</label>
-                            <input type="text" name="address" id="edit_address" required>
+                            <textarea name="address" id="edit_address" required></textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal('editStudentModal')">Cancel</button>
@@ -290,7 +322,7 @@ $students = $stmt->fetchAll();
 
     <script>
         function searchStudents(query) {
-            window.location.href = 'admin_manage_students.php?search=' + encodeURIComponent(query);
+            window.location.href = 'manage_students.php?search=' + encodeURIComponent(query);
         }
 
         function openModal(modalId) {
@@ -301,11 +333,52 @@ $students = $stmt->fetchAll();
             document.getElementById(modalId).classList.remove('show');
         }
 
+        function viewStudentDetails(studentId) {
+            // Load student details via AJAX
+            fetch('php/get_student_details.php?student_id=' + studentId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const student = data.student;
+                        const content = `
+                            <div class="student-info">
+                                <h4>Student Information</h4>
+                                <p><strong>ID:</strong> ${student.student_id}</p>
+                                <p><strong>Name:</strong> ${student.first_name} ${student.middle_name || ''} ${student.last_name}</p>
+                                <p><strong>Email:</strong> ${student.email}</p>
+                                <p><strong>Mobile:</strong> ${student.mobile}</p>
+                                <p><strong>Address:</strong> ${student.address}</p>
+                            </div>
+                            <div class="student-classes">
+                                <h4>Enrolled Classes</h4>
+                                ${data.classes.length > 0 ? 
+                                    data.classes.map(cls => `<p>${cls.class_name} (${cls.subject_name}) - ${cls.schedule}</p>`).join('') : 
+                                    '<p>No classes enrolled</p>'}
+                            </div>
+                            <div class="student-attendance">
+                                <h4>Attendance Summary</h4>
+                                <p><strong>Total Present:</strong> ${data.attendance.present}</p>
+                                <p><strong>Total Absent:</strong> ${data.attendance.absent}</p>
+                                <p><strong>Total Late:</strong> ${data.attendance.late}</p>
+                            </div>
+                        `;
+                        document.getElementById('studentDetailsContent').innerHTML = content;
+                        openModal('studentDetailsModal');
+                    } else {
+                        alert('Error loading student details');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading student details');
+                });
+        }
+
         function editStudent(student) {
             document.getElementById('edit_student_id').value = student.student_id;
             document.getElementById('edit_first_name').value = student.first_name;
-            document.getElementById('edit_last_name').value = student.last_name;
             document.getElementById('edit_middle_name').value = student.middle_name || '';
+            document.getElementById('edit_last_name').value = student.last_name;
             document.getElementById('edit_email').value = student.email;
             document.getElementById('edit_mobile').value = student.mobile;
             document.getElementById('edit_address').value = student.address;

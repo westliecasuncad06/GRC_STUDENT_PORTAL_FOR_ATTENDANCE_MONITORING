@@ -6,6 +6,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'professor') {
 }
 
 require_once 'db.php';
+
+// Fetch professor data
+$professor_id = $_SESSION['user_id'];
+$stmt = $pdo->prepare("SELECT * FROM professors WHERE professor_id = ?");
+$stmt->execute([$professor_id]);
+$professor = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Store professor data in session for form population
+$_SESSION['first_name'] = $professor['first_name'];
+$_SESSION['last_name'] = $professor['last_name'];
+$_SESSION['email'] = $professor['email'];
+$_SESSION['mobile'] = $professor['mobile'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,6 +32,11 @@ require_once 'db.php';
     <!-- Navbar -->
     <nav class="navbar">
         <div class="navbar-brand">
+            <button class="hamburger-menu" id="sidebarToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             Global Reciprocal College
         </div>
         <div class="navbar-user">
@@ -163,6 +180,14 @@ require_once 'db.php';
     </main>
 
     <script>
+        // Hamburger menu toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+
         // Dropdown functionality
         document.querySelector('.dropdown-toggle').addEventListener('click', function() {
             document.querySelector('.dropdown-menu').classList.toggle('show');
@@ -175,5 +200,82 @@ require_once 'db.php';
             }
         });
     </script>
+    
+    <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeModal">&times;</span>
+                <h2>Edit Information</h2>
+                <form id="settingsForm">
+                    <label for="first_name">First Name:</label>
+                    <input type="text" id="first_name" name="first_name" value="<?php echo $_SESSION['first_name']; ?>" required>
+                    
+                    <label for="last_name">Last Name:</label>
+                    <input type="text" id="last_name" name="last_name" value="<?php echo $_SESSION['last_name']; ?>" required>
+                    
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="<?php echo $_SESSION['email']; ?>" required>
+                    
+                    <label for="mobile">Mobile:</label>
+                    <input type="text" id="mobile" name="mobile" value="<?php echo $_SESSION['mobile']; ?>" required>
+                    
+                    <label for="password">New Password:</label>
+                    <input type="password" id="password" name="password">
+                    
+                    <label for="confirm_password">Confirm Password:</label>
+                    <input type="password" id="confirm_password" name="confirm_password">
+                    
+                    <button type="submit">Update</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // Open modal
+            document.querySelector('.dropdown-item[href="settings.php"]').addEventListener('click', function(event) {
+                event.preventDefault();
+                document.getElementById('settingsModal').style.display = 'block';
+            });
+
+            // Close modal
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('settingsModal').style.display = 'none';
+            });
+
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                if (event.target == document.getElementById('settingsModal')) {
+                    document.getElementById('settingsModal').style.display = 'none';
+                }
+            };
+
+            // Handle form submission
+            document.getElementById('settingsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch('php/update_user.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Profile updated successfully!');
+                        document.getElementById('settingsModal').style.display = 'none';
+                        // Update welcome message
+                        const welcomeSpan = document.querySelector('.navbar-user span');
+                        welcomeSpan.textContent = 'Welcome, Prof. ' + formData.get('first_name') + ' ' + formData.get('last_name');
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating your profile.');
+                });
+            });
+        </script>
 </body>
 </html>

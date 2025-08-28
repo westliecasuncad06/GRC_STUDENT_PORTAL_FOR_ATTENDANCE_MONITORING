@@ -56,9 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $professor_id = $_POST['professor_id'];
                 
                 try {
-                    $stmt = $pdo->prepare("DELETE FROM professors WHERE professor_id = ?");
-                    $stmt->execute([$professor_id]);
-                    $success = "Professor deleted successfully!";
+                    // Check if professor has classes assigned
+                    $check_stmt = $pdo->prepare("SELECT COUNT(*) as class_count FROM classes WHERE professor_id = ?");
+                    $check_stmt->execute([$professor_id]);
+                    $class_count = $check_stmt->fetch()['class_count'];
+                    
+if ($class_count > 0) {
+    $error = "Cannot delete professor: There are $class_count classes assigned to this professor. Please reassign or delete these classes first.";
+    // Optionally, provide a way to reassign or delete classes here
+                    } else {
+                        $stmt = $pdo->prepare("DELETE FROM professors WHERE professor_id = ?");
+                        $stmt->execute([$professor_id]);
+                        $success = "Professor deleted successfully!";
+                    }
                 } catch (PDOException $e) {
                     $error = "Error deleting professor: " . $e->getMessage();
                 }
@@ -99,7 +109,7 @@ $professors = $stmt->fetchAll();
             <div class="user-dropdown">
                 <button class="dropdown-toggle">⚙️</button>
                 <div class="dropdown-menu">
-                    <a href="settings.php" class="dropdown-item">Settings</a>
+
                     <a href="php/logout.php" class="dropdown-item">Logout</a>
                 </div>
             </div>
@@ -121,9 +131,7 @@ $professors = $stmt->fetchAll();
             <li class="sidebar-item">
                 <a href="admin_manage_schedule.php" class="sidebar-link">Manage Schedule</a>
             </li>
-            <li class="sidebar-item">
-                <a href="settings.php" class="sidebar-link">Settings</a>
-            </li>
+
         </ul>
     </aside>
 

@@ -1,3 +1,6 @@
+<?php
+session_start(); // Start the session
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -337,7 +340,7 @@
                 </div>
             <?php endif; ?>
 
-            <form class="login-form" action="php/login.php" method="POST">
+            <form class="login-form" id="loginForm" action="php/login.php" method="POST">
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" name="email" required placeholder="Enter your email address">
@@ -350,7 +353,7 @@
                 
                 <button type="submit" class="login-btn">Sign In</button>
                 
-                <div class="forgot-password">
+                <div class="forgot-password"> 
                     <a href="#">Forgot your password?</a>
                 </div>
                 

@@ -20,6 +20,11 @@ require_once 'db.php';
     <!-- Navbar -->
     <nav class="navbar">
         <div class="navbar-brand">
+            <button class="hamburger-menu" id="sidebarToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             Global Reciprocal College
         </div>
         <div class="navbar-user">
@@ -27,7 +32,6 @@ require_once 'db.php';
             <div class="user-dropdown">
                 <button class="dropdown-toggle">⚙️</button>
                 <div class="dropdown-menu">
-                    <a href="settings.php" class="dropdown-item">Settings</a>
                     <a href="php/logout.php" class="dropdown-item">Logout</a>
                 </div>
             </div>
@@ -41,22 +45,13 @@ require_once 'db.php';
                 <a href="admin_dashboard.php" class="sidebar-link active">Dashboard</a>
             </li>
             <li class="sidebar-item">
-                <a href="admin_manage_professors.php" class="sidebar-link">Professors</a>
+                <a href="admin_manage_professors.php" class="sidebar-link">Manage Professors</a>
             </li>
             <li class="sidebar-item">
-                <a href="admin_manage_students.php" class="sidebar-link">Students</a>
+                <a href="admin_manage_students.php" class="sidebar-link">Manage Students</a>
             </li>
             <li class="sidebar-item">
-                <a href="manage_classes.php" class="sidebar-link">Classes</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="manage_subjects.php" class="sidebar-link">Subjects</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="attendance_reports.php" class="sidebar-link">Attendance</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="settings.php" class="sidebar-link">Settings</a>
+                <a href="admin_manage_schedule.php" class="sidebar-link">Manage Schedule</a>
             </li>
         </ul>
     </aside>
@@ -144,6 +139,14 @@ require_once 'db.php';
     </main>
 
     <script>
+        // Hamburger menu toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+
         // Dropdown functionality
         document.querySelector('.dropdown-toggle').addEventListener('click', function() {
             document.querySelector('.dropdown-menu').classList.toggle('show');

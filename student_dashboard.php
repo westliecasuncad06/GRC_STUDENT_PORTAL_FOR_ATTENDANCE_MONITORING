@@ -6,6 +6,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 }
 
 require_once 'db.php';
+
+// Fetch student data
+$student_id = $_SESSION['user_id'];
+$stmt = $pdo->prepare("SELECT * FROM students WHERE student_id = ?");
+$stmt->execute([$student_id]);
+$student = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Store student data in session for form population
+$_SESSION['first_name'] = $student['first_name'];
+$_SESSION['last_name'] = $student['last_name'];
+$_SESSION['email'] = $student['email'];
+$_SESSION['mobile'] = $student['mobile'];
+$_SESSION['address'] = $student['address'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -230,5 +243,84 @@ require_once 'db.php';
             }
         });
     </script>
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeModal">&times;</span>
+                <h2>Edit Information</h2>
+                <form id="settingsForm">
+                    <label for="first_name">First Name:</label>
+                    <input type="text" id="first_name" name="first_name" value="<?php echo $_SESSION['name']; ?>" required>
+                    
+                    <label for="last_name">Last Name:</label>
+                    <input type="text" id="last_name" name="last_name" value="<?php echo $_SESSION['last_name']; ?>" required>
+                    
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="<?php echo $_SESSION['email']; ?>" required>
+                    
+                    <label for="mobile">Mobile:</label>
+                    <input type="text" id="mobile" name="mobile" value="<?php echo $_SESSION['mobile']; ?>" required>
+                    
+                    <label for="address">Address:</label>
+                    <textarea id="address" name="address" required><?php echo $_SESSION['address']; ?></textarea>
+                    
+                    <label for="password">New Password:</label>
+                    <input type="password" id="password" name="password">
+                    
+                    <label for="confirm_password">Confirm Password:</label>
+                    <input type="password" id="confirm_password" name="confirm_password">
+                    
+                    <button type="submit">Update</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // Open modal
+            document.querySelector('.dropdown-item[href="settings.php"]').addEventListener('click', function(event) {
+                event.preventDefault();
+                document.getElementById('settingsModal').style.display = 'block';
+            });
+
+            // Close modal
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('settingsModal').style.display = 'none';
+            });
+
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                if (event.target == document.getElementById('settingsModal')) {
+                    document.getElementById('settingsModal').style.display = 'none';
+                }
+            };
+
+            // Handle form submission
+            document.getElementById('settingsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch('php/update_user.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Profile updated successfully!');
+                        document.getElementById('settingsModal').style.display = 'none';
+                        // Update welcome message
+                        const welcomeSpan = document.querySelector('.navbar-user span');
+                        welcomeSpan.textContent = 'Welcome, ' + formData.get('first_name') + ' ' + formData.get('last_name');
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating your profile.');
+                });
+            });
+        </script>
 </body>
 </html>

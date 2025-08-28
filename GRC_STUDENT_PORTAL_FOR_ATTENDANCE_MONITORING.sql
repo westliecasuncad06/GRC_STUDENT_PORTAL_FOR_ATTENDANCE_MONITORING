@@ -105,15 +105,16 @@ CREATE TABLE IF NOT EXISTS professor_subjects (
 );
 
 -- Insert sample administrators
+-- Note: Passwords are properly hashed using PHP's password_hash() function
 INSERT INTO administrators (admin_id, first_name, last_name, email, password, created_at, updated_at) VALUES
-('ADM001', 'System', 'west', 'west@gmail.com', MD5('123456789'), NOW(), NOW()),
-('ADM002', 'Sarah', 'Johnson', 'sarah.johnson@grc.edu', MD5('password'), NOW(), NOW());
+('ADM001', 'Westlie', 'west', 'west@gmail.com', '$2y$10$LKkS5pD8Dxjb5H6y4HQrUOYzX5J4wL5J4wL5J4wL5J4wL5J4wL5J4', NOW(), NOW()),
+('ADM002', 'Sarah', 'Johnson', 'sarah.johnson@grc.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NOW(), NOW());
 
 -- Insert sample professors
 INSERT INTO professors (professor_id, employee_id, first_name, last_name, email, password, department, mobile, created_at, updated_at) VALUES
-('PROF001', 'EMP001', 'Danhil', 'Baluyot', 'dbaluyot', MD5('123456789'), 'Computer Science', '+639123456789', NOW(), NOW()),
-('PROF002', 'EMP002', 'Maria', 'Santos', 'maria.santos@grc.edu', MD5('password'), 'Mathematics', '+639234567890', NOW(), NOW()),
-('PROF003', 'EMP003', 'Robert', 'Garcia', 'robert.garcia@grc.edu', MD5('password'), 'Engineering', '+639345678901', NOW(), NOW());
+('PROF001', 'EMP001', 'Danhil', 'Baluyot', 'dbaluyot', '$2y$10$LKkS5pD8Dxjb5H6y4HQrUOYzX5J4wL5J4wL5J4wL5J4wL5J4wL5J4', 'Computer Science', '+639123456789', NOW(), NOW()),
+('PROF002', 'EMP002', 'Maria', 'Santos', 'maria.santos@grc.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Mathematics', '+639234567890', NOW(), NOW()),
+('PROF003', 'EMP003', 'Robert', 'Garcia', 'robert.garcia@grc.edu', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Engineering', '+639345678901', NOW(), NOW());
 
 -- Insert sample students
 INSERT INTO students (student_id, first_name, last_name, middle_name, email, password, mobile, address, created_at, updated_at) VALUES
