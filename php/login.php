@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['name'] = $student['first_name'] . ' ' . $student['last_name'];
                 // Debugging: Log session variables
                 error_log("Session Variables: " . print_r($_SESSION, true));
-                header('Location: ../student_dashboard.php');
+                header('Location: ../Student/student_dashboard.php');
                 exit();
             } elseif (md5($password) === $student['password']) {
                 // Password hashed with MD5 (legacy support)
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['name'] = $student['first_name'] . ' ' . $student['last_name'];
                 // Debugging: Log session variables
                 error_log("Session Variables: " . print_r($_SESSION, true));
-                header('Location: ../student_dashboard.php');
+                header('Location: ../Student/student_dashboard.php');
                 exit();
             }
         }
@@ -47,14 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_id'] = $professor['professor_id'];
                 $_SESSION['role'] = 'professor';
                 $_SESSION['name'] = $professor['first_name'] . ' ' . $professor['last_name'];
-                header('Location: ../professor_dashboard.php');
+                header('Location: ../Professor/professor_dashboard.php');
                 exit();
             } elseif (md5($password) === $professor['password']) {
                 // Password hashed with MD5 (legacy support)
                 $_SESSION['user_id'] = $professor['professor_id'];
                 $_SESSION['role'] = 'professor';
                 $_SESSION['name'] = $professor['first_name'] . ' ' . $professor['last_name'];
-                header('Location: ../professor_dashboard.php');
+                header('Location: ../Professor/professor_dashboard.php');
                 exit();
             }
         }
@@ -71,14 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_id'] = $admin['admin_id'];
                 $_SESSION['role'] = 'admin';
                 $_SESSION['name'] = $admin['first_name'] . ' ' . $admin['last_name'];
-                header('Location: ../admin_dashboard.php');
+                header('Location: ../Admin/admin_dashboard.php');
                 exit();
             } elseif (md5($password) === $admin['password']) {
                 // Password hashed with MD5 (legacy support)
                 $_SESSION['user_id'] = $admin['admin_id'];
                 $_SESSION['role'] = 'admin';
                 $_SESSION['name'] = $admin['first_name'] . ' ' . $admin['last_name'];
-                header('Location: ../admin_dashboard.php');
+                header('Location: ../Admin/admin_dashboard.php');
                 exit();
             }
         }

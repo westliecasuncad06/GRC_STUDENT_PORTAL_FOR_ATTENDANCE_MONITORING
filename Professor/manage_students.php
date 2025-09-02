@@ -5,7 +5,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'professor') {
     exit();
 }
 
-require_once 'db.php';
+require_once '../php/db.php';
 
 $professor_id = $_SESSION['user_id'];
 
@@ -83,21 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Get students enrolled in professor's classes
-$query = "SELECT DISTINCT s.* 
+$query = "SELECT DISTINCT s.*
           FROM students s
           JOIN student_classes sc ON s.student_id = sc.student_id
           JOIN classes c ON sc.class_id = c.class_id
           WHERE c.professor_id = ?";
-
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-if (!empty($search)) {
-    $query .= " AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.email LIKE ? OR s.student_id LIKE ?)";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$professor_id, "%$search%", "%$search%", "%$search%", "%$search%"]);
-} else {
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$professor_id]);
-}
+$stmt = $pdo->prepare($query);
+$stmt->execute([$professor_id]);
 $students = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -106,22 +98,208 @@ $students = $stmt->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Students - Global Reciprocal College</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="../css/styles_fixed.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .enhanced-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+        .enhanced-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .table tbody tr:hover {
+            background-color: #e3f2fd;
+            transition: background-color 0.3s ease;
+        }
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-inactive {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
+        }
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            background: white;
+            font-size: 0.9rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .modal-form .form-group {
+            position: relative;
+        }
+        .modal-form input, .modal-form select {
+            padding-left: 40px;
+        }
+        .form-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 1rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stats-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 4px solid var(--primary);
+            transition: transform 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .stats-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .table-header-enhanced {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+        }
+        .table-title-enhanced {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .fade-in {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .fade-out {
+            animation: fadeOut 0.5s ease-out;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+            .table-header-enhanced {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .action-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar">
         <div class="navbar-brand">
-            Global Reciprocal College
+            <button class="hamburger-menu" id="sidebarToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <span class="navbar-title">Global Reciprocal College</span>
+            <span class="navbar-title-mobile">GRC</span>
         </div>
         <div class="navbar-user">
             <span>Welcome, Prof. <?php echo $_SESSION['name']; ?></span>
             <div class="user-dropdown">
                 <button class="dropdown-toggle">⚙️</button>
                 <div class="dropdown-menu">
-                    <a href="settings.php" class="dropdown-item">Settings</a>
-                    <a href="php/logout.php" class="dropdown-item">Logout</a>
+                    <a href="../admin/settings.php" class="dropdown-item">Settings</a>
+                    <a href="../php/logout.php" class="dropdown-item">Logout</a>
                 </div>
             </div>
         </div>
@@ -137,13 +315,13 @@ $students = $stmt->fetchAll();
                 <a href="manage_students.php" class="sidebar-link active">Students</a>
             </li>
             <li class="sidebar-item">
-                <a href="my_classes.php" class="sidebar-link">My Classes</a>
+                    <a href="professor_manage_schedule.php" class="sidebar-link">My Classes</a>
             </li>
             <li class="sidebar-item">
-                <a href="my_subjects.php" class="sidebar-link">My Subjects</a>
+                    <a href="manage_subjects.php" class="sidebar-link">My Subjects</a>
             </li>
             <li class="sidebar-item">
-                <a href="attendance.php" class="sidebar-link">Attendance</a>
+                    <a href="professor_manage_schedule.php" class="sidebar-link">Attendance</a>
             </li>
             <li class="sidebar-item">
                 <a href="settings.php" class="sidebar-link">Settings</a>
@@ -154,20 +332,44 @@ $students = $stmt->fetchAll();
     <!-- Main Content -->
     <main class="main-content">
         <?php if (isset($success)): ?>
-            <div class="success-message"><?php echo $success; ?></div>
-        <?php endif; ?>
-        
-        <?php if (isset($error)): ?>
-            <div class="error-message"><?php echo $error; ?></div>
+            <div class="alert alert-success fade-in" role="alert" tabindex="0">
+                <i class="fas fa-check-circle"></i>
+                <?php echo htmlspecialchars($success); ?>
+            </div>
         <?php endif; ?>
 
-        <div class="table-header">
-            <h2 class="table-title">My Students</h2>
-            <div class="table-actions">
-                <input type="text" class="search-input" placeholder="Search students..." 
-                       value="<?php echo htmlspecialchars($search); ?>"
-                       onkeyup="if(event.key === 'Enter') searchStudents(this.value)">
-                <button class="btn btn-primary" onclick="openModal('addStudentModal')">Add Student</button>
+        <?php if (isset($error)): ?>
+            <div class="alert alert-danger fade-in" role="alert" tabindex="0">
+                <i class="fas fa-exclamation-triangle"></i>
+                <?php echo htmlspecialchars($error); ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="table-header-enhanced">
+            <h2 class="table-title-enhanced"><i class="fas fa-users" style="margin-right: 10px;"></i>My Students</h2>
+            <div class="btn-group">
+                <input type="search" id="searchInput" class="search-input" placeholder="Search students..." aria-label="Search students" onkeyup="filterStudents()" />
+                <button class="btn btn-primary btn-icon" type="button" onclick="openModal('addStudentModal')" aria-haspopup="dialog">
+                    <i class="fas fa-plus"></i> Add Student
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stats-card fade-in">
+                <i class="fas fa-user-graduate" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                <div class="stats-number"><?php echo count($students); ?></div>
+                <div class="stats-label">Total Students</div>
+            </div>
+            <div class="stats-card fade-in">
+                <i class="fas fa-user-check" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                <div class="stats-number"><?php echo count(array_filter($students, function($s) { return strtotime($s['created_at']) > strtotime('-30 days'); })); ?></div>
+                <div class="stats-label">New This Month</div>
+            </div>
+            <div class="stats-card fade-in">
+                <i class="fas fa-envelope" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                <div class="stats-number"><?php echo count(array_unique(array_column($students, 'email'))); ?></div>
+                <div class="stats-label">Unique Emails</div>
             </div>
         </div>
 
@@ -192,13 +394,21 @@ $students = $stmt->fetchAll();
                         <td><?php echo $student['mobile']; ?></td>
                         <td><?php echo $student['address']; ?></td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="viewStudentDetails('<?php echo $student['student_id']; ?>')">View Details</button>
-                            <button class="btn btn-sm btn-warning" onclick="editStudent(<?php echo htmlspecialchars(json_encode($student)); ?>)">Edit</button>
-                            <form action="" method="POST" style="display:inline;">
-                                <input type="hidden" name="action" value="delete_student">
-                                <input type="hidden" name="student_id" value="<?php echo $student['student_id']; ?>">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?')">Delete</button>
-                            </form>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-primary btn-icon" onclick="viewStudentDetails('<?php echo $student['student_id']; ?>)">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="btn btn-sm btn-warning btn-icon" onclick="editStudent(<?php echo htmlspecialchars(json_encode($student)); ?>)">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <form action="" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="delete_student">
+                                    <input type="hidden" name="student_id" value="<?php echo $student['student_id']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger btn-icon" onclick="return confirm('Are you sure you want to delete this student?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -321,8 +531,22 @@ $students = $stmt->fetchAll();
     </main>
 
     <script>
-        function searchStudents(query) {
-            window.location.href = 'manage_students.php?search=' + encodeURIComponent(query);
+        function filterStudents() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const tbody = document.querySelector('.table tbody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                let match = false;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j].textContent.toLowerCase().includes(query)) {
+                        match = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = match ? '' : 'none';
+            }
         }
 
         function openModal(modalId) {
@@ -335,7 +559,7 @@ $students = $stmt->fetchAll();
 
         function viewStudentDetails(studentId) {
             // Load student details via AJAX
-            fetch('php/get_student_details.php?student_id=' + studentId)
+            fetch('../php/get_student_details.php?student_id=' + studentId)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -401,6 +625,28 @@ $students = $stmt->fetchAll();
         document.addEventListener('click', function(event) {
             if (!event.target.closest('.user-dropdown')) {
                 document.querySelector('.dropdown-menu').classList.remove('show');
+            }
+        });
+
+        // Hamburger menu toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('show');
+            // Optionally add overlay for mobile
+            if (window.innerWidth <= 900) {
+                document.body.classList.toggle('sidebar-open');
+            }
+        });
+
+        // Optional: Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
             }
         });
     </script>
