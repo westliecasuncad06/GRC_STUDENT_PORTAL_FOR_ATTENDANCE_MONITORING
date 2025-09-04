@@ -1,58 +1,4 @@
-     <?php
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
-    header('Location: index.php');
-    exit();
-}
 
-require_once '../php/db.php';
-
-// Fetch student data
-$student_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT * FROM students WHERE student_id = ?");
-$stmt->execute([$student_id]);
-$student = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// Store student data in session for form population
-$_SESSION['first_name'] = $student['first_name'];
-$_SESSION['last_name'] = $student['last_name'];
-$_SESSION['email'] = $student['email'];
-$_SESSION['mobile'] = $student['mobile'];
-$_SESSION['address'] = $student['address'];
-// Attendance analytics
-$overall_stmt = $pdo->prepare("SELECT status, COUNT(*) as count FROM attendance WHERE student_id = ? GROUP BY status");
-$overall_stmt->execute([$student_id]);
-$overall_analytics = $overall_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-// Overall statistics
-$overall_stats_stmt = $pdo->prepare("SELECT
-    COUNT(*) as total_records,
-    SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present,
-    SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent,
-    SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late,
-    SUM(CASE WHEN status = 'Excused' THEN 1 ELSE 0 END) as excused,
-    MIN(date) as first_date,
-    MAX(date) as last_date
-FROM attendance WHERE student_id = ?");
-$overall_stats_stmt->execute([$student_id]);
-$overall_stats = $overall_stats_stmt->fetch();
-// Monthly data
-$monthly_stmt = $pdo->prepare("SELECT DATE_FORMAT(date, '%Y-%m') as month, status, COUNT(*) as count FROM attendance WHERE student_id = ? GROUP BY month, status ORDER BY month");
-$monthly_stmt->execute([$student_id]);
-$monthly_raw = $monthly_stmt->fetchAll();
-// Process monthly data
-$monthly_data = [];
-$months = [];
-foreach ($monthly_raw as $row) {
-    $month = $row['month'];
-    if (!in_array($month, $months)) {
-        $months[] = $month;
-    }
-    if (!isset($monthly_data[$month])) {
-        $monthly_data[$month] = ['Present' => 0, 'Absent' => 0, 'Late' => 0, 'Excused' => 0];
-    }
-    $monthly_data[$month][$row['status']] = $row['count'];
-}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -789,8 +735,113 @@ foreach ($monthly_raw as $row) {
     </style>
 </head>
 <body>
-    <?php include '../includes/navbar_student.php'; ?>
-    <?php include '../includes/sidebar_student.php'; ?>
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <button type="button" class="hamburger-menu" id="sidebarToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <span class="navbar-title">Global Reciprocal College</span>
+        <span class="navbar-title-mobile">GRC</span>
+    </div>
+    <div class="navbar-user">
+        <span>Welcome, John Doe</span>
+        <div class="user-dropdown">
+            <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-cog" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="settings.html" class="dropdown-item">Settings</a>
+                <a href="../index.html" class="dropdown-item">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[navbar_student] DOMContentLoaded');
+    // Dropdown functionality for multiple dropdowns
+    document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(event) {
+                console.log('[navbar_student] dropdown toggle clicked');
+                event.stopPropagation();
+                // Close other dropdowns first
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.remove('show');
+                        const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                        if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                const isOpen = menu.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+            if (!event.target.closest('.user-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+    });
+});
+</script>
+
+
+
+
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-item">
+            <a href="student_dashboard.html" class="sidebar-link active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="student_manage_schedule.html" class="sidebar-link"><i class="fas fa-calendar-alt"></i> My Schedule</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="settings.html" class="sidebar-link"><i class="fas fa-cog"></i> Settings</a>
+        </li>
+    </ul>
+</aside>
+
+<script>
+// Hamburger menu toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('show');
+    // Optionally add overlay for mobile
+    if (window.innerWidth <= 900) {
+        document.body.classList.toggle('sidebar-open');
+    }
+});
+
+// Optional: Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+        if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+            sidebar.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+    }
+});
+
+
+</script>
+
 
     <!-- Main Content -->
     <main class="main-content">
@@ -806,135 +857,131 @@ foreach ($monthly_raw as $row) {
 
         <div class="dashboard-container">
         <!-- Per Subject Attendance Tiles -->
-        <?php
-        // Fetch student's enrolled subjects/classes
-        $stmt = $pdo->prepare("SELECT c.class_id, c.class_name, s.subject_name
-                               FROM student_classes sc
-                               JOIN classes c ON sc.class_id = c.class_id
-                               JOIN subjects s ON c.subject_id = s.subject_id
-                               WHERE sc.student_id = ?");
-        $stmt->execute([$student_id]);
-        $student_subjects = $stmt->fetchAll();
-
-        // Prepare attendance stats per subject for the student
-        $attendance_stats = [];
-        $recent_dates = [];
-        foreach ($student_subjects as $subject) {
-            // Attendance stats
-            $query = "SELECT 
-                        COUNT(*) as total_records,
-                        SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present,
-                        SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent,
-                        SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late,
-                        SUM(CASE WHEN status = 'Excused' THEN 1 ELSE 0 END) as excused
-                      FROM attendance
-                      WHERE student_id = ? AND class_id = ?";
-            $stmt2 = $pdo->prepare($query);
-            $stmt2->execute([$student_id, $subject['class_id']]);
-            $stats = $stmt2->fetch();
-
-            $attendance_stats[$subject['class_id']] = $stats;
-
-            // Recent attendance dates
-            $query = "SELECT DISTINCT date
-                      FROM attendance
-                      WHERE student_id = ? AND class_id = ?
-                      ORDER BY date DESC
-                      LIMIT 2";
-            $stmt3 = $pdo->prepare($query);
-            $stmt3->execute([$student_id, $subject['class_id']]);
-            $dates = $stmt3->fetchAll(PDO::FETCH_COLUMN);
-            $recent_dates[$subject['class_id']] = $dates;
-        }
-        ?>
-
         <div class="stats-grid">
-            <?php foreach ($student_subjects as $subject):
-                $stats = $attendance_stats[$subject['class_id']] ?? null;
-            ?>
             <div class="stat-card-enhanced">
                 <div class="stat-header-enhanced">
                     <div class="stat-icon-enhanced">
                         <i class="fas fa-book"></i>
                     </div>
                     <div class="stat-info-enhanced">
-                        <h3 class="stat-title-enhanced"><?php echo htmlspecialchars($subject['subject_name']); ?></h3>
-                        <p class="stat-subtitle-enhanced"><?php echo htmlspecialchars($subject['class_name']); ?></p>
+                        <h3 class="stat-title-enhanced">Mathematics</h3>
+                        <p class="stat-subtitle-enhanced">Math 101</p>
                     </div>
                 </div>
-
-                <?php if ($stats && $stats['total_records'] > 0):
-                    $attendance_rate = ($stats['present'] + $stats['late'] + $stats['excused']) / $stats['total_records'] * 100;
-                ?>
                 <div class="stat-metrics-enhanced">
                     <div class="stat-main-metric">
-                        <div class="stat-value-enhanced"><?php echo number_format($attendance_rate, 1); ?>%</div>
+                        <div class="stat-value-enhanced">85.0%</div>
                         <div class="stat-label-enhanced">Attendance Rate</div>
                     </div>
-
                     <div class="stat-breakdown-enhanced">
                         <div class="stat-breakdown-item">
                             <i class="fas fa-check-circle stat-breakdown-icon" style="color: #28a745;"></i>
                             <div>
-                                <div class="stat-breakdown-value"><?php echo $stats['present']; ?></div>
+                                <div class="stat-breakdown-value">17</div>
                                 <div class="stat-breakdown-label">Present</div>
                             </div>
                         </div>
                         <div class="stat-breakdown-item">
                             <i class="fas fa-times-circle stat-breakdown-icon" style="color: #dc3545;"></i>
                             <div>
-                                <div class="stat-breakdown-value"><?php echo $stats['absent']; ?></div>
+                                <div class="stat-breakdown-value">2</div>
                                 <div class="stat-breakdown-label">Absent</div>
                             </div>
                         </div>
                         <div class="stat-breakdown-item">
                             <i class="fas fa-clock stat-breakdown-icon" style="color: #ffc107;"></i>
                             <div>
-                                <div class="stat-breakdown-value"><?php echo $stats['late']; ?></div>
+                                <div class="stat-breakdown-value">1</div>
                                 <div class="stat-breakdown-label">Late</div>
                             </div>
                         </div>
                         <div class="stat-breakdown-item">
                             <i class="fas fa-exclamation-circle stat-breakdown-icon" style="color: #17a2b8;"></i>
                             <div>
-                                <div class="stat-breakdown-value"><?php echo $stats['excused']; ?></div>
+                                <div class="stat-breakdown-value">0</div>
                                 <div class="stat-breakdown-label">Excused</div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <?php if (!empty($recent_dates[$subject['class_id']])): ?>
                 <div class="stat-actions-enhanced">
                     <h4 class="stat-section-title">Recent Attendance</h4>
                     <div class="stat-recent-list">
-                        <?php foreach ($recent_dates[$subject['class_id']] as $date): ?>
                         <div class="stat-recent-item">
                             <div class="stat-recent-date">
                                 <i class="fas fa-calendar-alt" style="color: var(--primary);"></i>
-                                <?php echo date('M j, Y', strtotime($date)); ?>
+                                Oct 10, 2023
                             </div>
-                            <button class="stat-action-btn" onclick="openAttendanceModal('<?php echo $subject['class_id']; ?>', '<?php echo $date; ?>')">
+                            <button class="stat-action-btn" onclick="openAttendanceModal('1', '2023-10-10')">
                                 <i class="fas fa-eye"></i>
                                 View
                             </button>
                         </div>
-                        <?php endforeach; ?>
                     </div>
                 </div>
-                <?php endif; ?>
-                <?php else: ?>
-                <div class="stat-empty-enhanced">
-                    <i class="fas fa-chart-line stat-empty-icon"></i>
-                    <div class="stat-empty-text">No attendance records yet</div>
-                    <button class="stat-primary-btn">
-                        <i class="fas fa-plus"></i>
-                        Start Tracking
-                    </button>
-                </div>
-                <?php endif; ?>
             </div>
-            <?php endforeach; ?>
+            <div class="stat-card-enhanced">
+                <div class="stat-header-enhanced">
+                    <div class="stat-icon-enhanced">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="stat-info-enhanced">
+                        <h3 class="stat-title-enhanced">Physics</h3>
+                        <p class="stat-subtitle-enhanced">Physics 201</p>
+                    </div>
+                </div>
+                <div class="stat-metrics-enhanced">
+                    <div class="stat-main-metric">
+                        <div class="stat-value-enhanced">90.0%</div>
+                        <div class="stat-label-enhanced">Attendance Rate</div>
+                    </div>
+                    <div class="stat-breakdown-enhanced">
+                        <div class="stat-breakdown-item">
+                            <i class="fas fa-check-circle stat-breakdown-icon" style="color: #28a745;"></i>
+                            <div>
+                                <div class="stat-breakdown-value">18</div>
+                                <div class="stat-breakdown-label">Present</div>
+                            </div>
+                        </div>
+                        <div class="stat-breakdown-item">
+                            <i class="fas fa-times-circle stat-breakdown-icon" style="color: #dc3545;"></i>
+                            <div>
+                                <div class="stat-breakdown-value">1</div>
+                                <div class="stat-breakdown-label">Absent</div>
+                            </div>
+                        </div>
+                        <div class="stat-breakdown-item">
+                            <i class="fas fa-clock stat-breakdown-icon" style="color: #ffc107;"></i>
+                            <div>
+                                <div class="stat-breakdown-value">1</div>
+                                <div class="stat-breakdown-label">Late</div>
+                            </div>
+                        </div>
+                        <div class="stat-breakdown-item">
+                            <i class="fas fa-exclamation-circle stat-breakdown-icon" style="color: #17a2b8;"></i>
+                            <div>
+                                <div class="stat-breakdown-value">0</div>
+                                <div class="stat-breakdown-label">Excused</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-actions-enhanced">
+                    <h4 class="stat-section-title">Recent Attendance</h4>
+                    <div class="stat-recent-list">
+                        <div class="stat-recent-item">
+                            <div class="stat-recent-date">
+                                <i class="fas fa-calendar-alt" style="color: var(--primary);"></i>
+                                Oct 11, 2023
+                            </div>
+                            <button class="stat-action-btn" onclick="openAttendanceModal('2', '2023-10-11')">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Overall Analytics Charts -->
@@ -969,44 +1016,41 @@ foreach ($monthly_raw as $row) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    $stmt = $pdo->prepare("SELECT a.*, c.class_name, s.subject_name 
-                                         FROM attendance a 
-                                         JOIN classes c ON a.class_id = c.class_id 
-                                         JOIN subjects s ON c.subject_id = s.subject_id 
-                                         WHERE a.student_id = ? 
-                                         ORDER BY a.date DESC, a.created_at DESC 
-                                         LIMIT 10");
-                    $stmt->execute([$student_id]);
-                    $attendance_records = $stmt->fetchAll();
-                    
-                    foreach ($attendance_records as $record) {
-                        $status_class = '';
-                        switch ($record['status']) {
-                            case 'Present':
-                                $status_class = 'badge-success';
-                                break;
-                            case 'Late':
-                                $status_class = 'badge-warning';
-                                break;
-                            case 'Absent':
-                                $status_class = 'badge-danger';
-                                break;
-                        }
-                        
-                        echo "<tr>
-                            <td>{$record['date']}</td>
-                            <td>{$record['class_name']}</td>
-                            <td>{$record['subject_name']}</td>
-                            <td><span class='badge {$status_class}'>{$record['status']}</span></td>
-                            <td>{$record['remarks']}</td>
-                        </tr>";
-                    }
-                    
-                    if (empty($attendance_records)) {
-                        echo "<tr><td colspan='5' style='text-align: center;'>No attendance records found</td></tr>";
-                    }
-                    ?>
+                    <tr>
+                        <td>2023-10-10</td>
+                        <td>Math 101</td>
+                        <td>Mathematics</td>
+                        <td><span class='badge badge-success'>Present</span></td>
+                        <td>On time</td>
+                    </tr>
+                    <tr>
+                        <td>2023-10-09</td>
+                        <td>Physics 201</td>
+                        <td>Physics</td>
+                        <td><span class='badge badge-success'>Present</span></td>
+                        <td>On time</td>
+                    </tr>
+                    <tr>
+                        <td>2023-10-08</td>
+                        <td>Math 101</td>
+                        <td>Mathematics</td>
+                        <td><span class='badge badge-warning'>Late</span></td>
+                        <td>Arrived late</td>
+                    </tr>
+                    <tr>
+                        <td>2023-10-07</td>
+                        <td>Physics 201</td>
+                        <td>Physics</td>
+                        <td><span class='badge badge-success'>Present</span></td>
+                        <td>On time</td>
+                    </tr>
+                    <tr>
+                        <td>2023-10-06</td>
+                        <td>Math 101</td>
+                        <td>Mathematics</td>
+                        <td><span class='badge badge-danger'>Absent</span></td>
+                        <td>Sick leave</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -1027,30 +1071,27 @@ foreach ($monthly_raw as $row) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    $stmt = $pdo->prepare("SELECT c.*, s.subject_name, p.first_name, p.last_name 
-                                         FROM student_classes sc 
-                                         JOIN classes c ON sc.class_id = c.class_id 
-                                         JOIN subjects s ON c.subject_id = s.subject_id 
-                                         JOIN professors p ON c.professor_id = p.professor_id 
-                                         WHERE sc.student_id = ?");
-                    $stmt->execute([$student_id]);
-                    $enrolled_classes = $stmt->fetchAll();
-                    
-                    foreach ($enrolled_classes as $class) {
-                        echo "<tr>
-                            <td>{$class['class_name']}</td>
-                            <td>{$class['subject_name']}</td>
-                            <td>Prof. {$class['first_name']} {$class['last_name']}</td>
-                            <td>{$class['schedule']}</td>
-                            <td>{$class['room']}</td>
-                        </tr>";
-                    }
-                    
-                    if (empty($enrolled_classes)) {
-                        echo "<tr><td colspan='5' style='text-align: center;'>No classes enrolled yet</td></tr>";
-                    }
-                    ?>
+                    <tr>
+                        <td>Math 101</td>
+                        <td>Mathematics</td>
+                        <td>Prof. John Smith</td>
+                        <td>MWF 9:00-10:00</td>
+                        <td>Room 101</td>
+                    </tr>
+                    <tr>
+                        <td>Physics 201</td>
+                        <td>Physics</td>
+                        <td>Prof. Jane Doe</td>
+                        <td>TTh 11:00-12:00</td>
+                        <td>Room 201</td>
+                    </tr>
+                    <tr>
+                        <td>Chemistry 301</td>
+                        <td>Chemistry</td>
+                        <td>Prof. Alice Johnson</td>
+                        <td>MW 2:00-3:00</td>
+                        <td>Room 301</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -1103,7 +1144,7 @@ foreach ($monthly_raw as $row) {
         <script>
             // Pie Chart
             const pieCtx = document.getElementById('pieChart').getContext('2d');
-            const attendanceData = <?php echo json_encode($attendance_analytics); ?>;
+            const attendanceData = { "Present": 35, "Absent": 5, "Late": 2, "Excused": 1 };
             const labels = Object.keys(attendanceData);
             const data = Object.values(attendanceData);
             if (data.length > 0) {
@@ -1137,7 +1178,10 @@ foreach ($monthly_raw as $row) {
 
             // Bar Chart
             const barCtx = document.getElementById('barChart').getContext('2d');
-            const monthlyData = <?php echo json_encode($monthly_data); ?>;
+            const monthlyData = {
+                "October": { "Present": 15, "Absent": 2 },
+                "September": { "Present": 20, "Absent": 3 }
+            };
             const months = Object.keys(monthlyData).sort();
             const presentData = months.map(month => monthlyData[month]['Present'] || 0);
             const absentData = months.map(month => monthlyData[month]['Absent'] || 0);

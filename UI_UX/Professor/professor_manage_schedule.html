@@ -1,194 +1,14 @@
-<?php
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'professor') {
-    header('Location: index.php');
-    exit();
-}
-// (Removed testing bypasses) Authentication is enforced above.
-
-require_once '../php/db.php';
-
-// Function to generate unique class code
-function generateUniqueClassCode($pdo) {
-    $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    $maxAttempts = 10;
-    
-    for ($i = 0; $i < $maxAttempts; $i++) {
-        $code = '';
-        for ($j = 0; $j < 8; $j++) {
-            $code .= $characters[rand(0, strlen($characters) - 1)];
-        }
-        
-        // Check if code already exists
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM classes WHERE class_code = ?");
-        $stmt->execute([$code]);
-        $count = $stmt->fetch()['count'];
-        
-        if ($count == 0) {
-            return $code;
-        }
-    }
-    
-    // If all attempts fail, use timestamp-based code
-    return 'CLASS' . time();
-}
-
-// Handle schedule actions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        $professor_id = $_SESSION['user_id'];
-        
-        switch ($action) {
-            case 'add_subject':
-                $subject_code = $_POST['subject_code'];
-                $subject_name = $_POST['subject_name'];
-                $schedule = $_POST['schedule'];
-                $room = $_POST['room'];
-                
-                try {
-                    // First insert the subject
-                    $stmt = $pdo->prepare("INSERT INTO subjects (subject_id, subject_name, subject_code, credits, created_at, updated_at) 
-                                          VALUES (?, ?, ?, 3, NOW(), NOW())");
-                    $subject_id = 'SUB' . time();
-                    $stmt->execute([$subject_id, $subject_name, $subject_code]);
-                    
-                    // Generate unique class code
-                    $class_code = generateUniqueClassCode($pdo);
-                    
-                    // Then create a class for this subject
-                    $stmt = $pdo->prepare("INSERT INTO classes (class_id, class_name, class_code, subject_id, professor_id, schedule, room, created_at, updated_at) 
-                                          VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-                    $class_id = 'CLASS' . time();
-                    $stmt->execute([$class_id, $subject_name . ' Class', $class_code, $subject_id, $professor_id, $schedule, $room]);
-                    
-                    $success = "Subject and class added successfully! Class Code: " . $class_code;
-                } catch (PDOException $e) {
-                    $error = "Error adding subject: " . $e->getMessage();
-                }
-                break;
-                
-            case 'edit_subject':
-                $subject_id = $_POST['subject_id'];
-                $subject_code = $_POST['subject_code'];
-                $subject_name = $_POST['subject_name'];
-                $schedule = $_POST['schedule'];
-                $room = $_POST['room'];
-                
-                try {
-                    // Update subject information
-                    $stmt = $pdo->prepare("UPDATE subjects SET subject_code = ?, subject_name = ?, updated_at = NOW() 
-                                          WHERE subject_id = ?");
-                    $stmt->execute([$subject_code, $subject_name, $subject_id]);
-                    
-                    // Update class information
-                    $stmt = $pdo->prepare("UPDATE classes SET schedule = ?, room = ?, updated_at = NOW() 
-                                          WHERE subject_id = ? AND professor_id = ?");
-                    $stmt->execute([$schedule, $room, $subject_id, $professor_id]);
-                    
-                    $success = "Subject updated successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error updating subject: " . $e->getMessage();
-                }
-                break;
-                
-            case 'delete_subject':
-                $subject_id = $_POST['subject_id'];
-                
-                try {
-                    // First delete associated classes
-                    $stmt = $pdo->prepare("DELETE FROM classes WHERE subject_id = ? AND professor_id = ?");
-                    $stmt->execute([$subject_id, $professor_id]);
-                    
-                    // Then delete the subject if no other professors are using it
-                    $check_stmt = $pdo->prepare("SELECT COUNT(*) as count FROM classes WHERE subject_id = ?");
-                    $check_stmt->execute([$subject_id]);
-                    $class_count = $check_stmt->fetch()['count'];
-                    
-                    if ($class_count == 0) {
-                        $stmt = $pdo->prepare("DELETE FROM subjects WHERE subject_id = ?");
-                        $stmt->execute([$subject_id]);
-                    }
-                    
-                    $success = "Subject deleted successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error deleting subject: " . $e->getMessage();
-                }
-                break;
-                
-            case 'regenerate_code':
-                $subject_id = $_POST['subject_id'];
-                
-                try {
-                    $new_code = generateUniqueClassCode($pdo);
-                    $stmt = $pdo->prepare("UPDATE classes SET class_code = ?, updated_at = NOW() 
-                                          WHERE subject_id = ? AND professor_id = ?");
-                    $stmt->execute([$new_code, $subject_id, $professor_id]);
-                    
-                    $success = "Class code regenerated successfully! New Code: " . $new_code;
-                } catch (PDOException $e) {
-                    $error = "Error regenerating code: " . $e->getMessage();
-                }
-                break;
-                
-            case 'mark_attendance':
-                $class_id = $_POST['class_id'];
-                $date = $_POST['date'];
-                $attendance_data = json_decode($_POST['attendance'], true);
-                
-                try {
-                    // Delete existing attendance for this class and date
-                    $stmt = $pdo->prepare("DELETE FROM attendance WHERE class_id = ? AND date = ?");
-                    $stmt->execute([$class_id, $date]);
-                    
-                    // Insert new attendance records
-                    $stmt = $pdo->prepare("INSERT INTO attendance (student_id, class_id, date, status, remarks, created_at) 
-                                          VALUES (?, ?, ?, ?, ?, NOW())");
-                    
-                    foreach ($attendance_data as $student_id => $data) {
-                        $stmt->execute([$student_id, $class_id, $date, $data['status'], $data['remarks']]);
-                    }
-                    
-                    $success = "Attendance recorded successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error recording attendance: " . $e->getMessage();
-                }
-                break;
-        }
-    }
-}
-
-// Get professor's subjects
-$professor_id = $_SESSION['user_id'];
-$query = "SELECT s.*, c.class_id, c.class_code, c.schedule, c.room 
-          FROM subjects s 
-          JOIN classes c ON s.subject_id = c.subject_id 
-          WHERE c.professor_id = ? 
-          ORDER BY s.created_at DESC";
-$stmt = $pdo->prepare($query);
-$stmt->execute([$professor_id]);
-$subjects = $stmt->fetchAll();
-
-// Get enrolled students count for each subject
-$enrollment_counts = [];
-foreach ($subjects as $subject) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM student_classes sc 
-                          JOIN classes c ON sc.class_id = c.class_id 
-                          WHERE c.subject_id = ?");
-    $stmt->execute([$subject['subject_id']]);
-    $enrollment_counts[$subject['subject_id']] = $stmt->fetch()['count'];
-}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Manage Classes - Global Reciprocal College</title>
-    <link rel="stylesheet" href="../css/styles_fixed.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles_fixed.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <style>
+        /* (Keep all the existing styles as is) */
         .dashboard-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -381,6 +201,7 @@ foreach ($subjects as $subject) {
         .success-message {
             background: #d4edda;
             color: #155724;
+            border: 1px solid #c3e6cb;
             border: 1px solid #c3e6cb;
         }
 
@@ -672,11 +493,114 @@ foreach ($subjects as $subject) {
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <?php include '../includes/navbar_professor.php'; ?>
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <button type="button" class="hamburger-menu" id="sidebarToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <span class="navbar-title">Global Reciprocal College</span>
+        <span class="navbar-title-mobile">GRC</span>
+    </div>
+    <div class="navbar-user">
+        <span>Welcome, Professor John
+</span>
+        <div class="user-dropdown">
+            <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-cog" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="settings.html" class="dropdown-item">Settings</a>
+<a href="../index.html" class="dropdown-item">Logout</a>            </div>
+        </div>
+    </div>
+</nav>
 
-    <!-- Sidebar -->
-    <?php include '../includes/sidebar_professor.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[navbar_professor] DOMContentLoaded');
+    // Dropdown functionality for multiple dropdowns
+    document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(event) {
+                console.log('[navbar_professor] dropdown toggle clicked');
+                event.stopPropagation();
+                // Close other dropdowns first
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.remove('show');
+                        const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                        if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                const isOpen = menu.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+            if (!event.target.closest('.user-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+    });
+});
+</script>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-item">
+            <a href="professor_dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="manage_subjects.html" class="sidebar-link"><i class="fas fa-book"></i> Manage Subjects</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="manage_students.html" class="sidebar-link"><i class="fas fa-users"></i> Manage Students</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="professor_manage_schedule.html" class="sidebar-link active"><i class="fas fa-chalkboard-teacher"></i> Manage Class</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="settings.html" class="sidebar-link"><i class="fas fa-cog"></i> Settings</a>
+        </li>
+    </ul>
+</aside>
+
+<script>
+// Hamburger menu toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('show');
+    // Optionally add overlay for mobile
+    if (window.innerWidth <= 900) {
+        document.body.classList.toggle('sidebar-open');
+    }
+});
+
+// Optional: Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+        if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+            sidebar.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+    }
+});
+
+
+</script>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -690,62 +614,86 @@ foreach ($subjects as $subject) {
         </div>
 
         <div class="dashboard-container">
-            <?php if (isset($success)): ?>
-                <div class="success-message"><?php echo $success; ?></div>
-            <?php endif; ?>
+            <!-- Static success message example -->
+            <div class="success-message">Class added successfully!</div>
 
-            <?php if (isset($error)): ?>
-                <div class="error-message"><?php echo $error; ?></div>
-            <?php endif; ?>
+            <!-- Static error message example -->
+            <!-- <div class="error-message">Failed to add class. Please try again.</div> -->
 
-            <?php if (empty($subjects)): ?>
-                <div class="no-data">
-                    <p>No classes found. Create your first class to get started.</p>
-                    <button class="stat-primary-btn" onclick="openModal('addSubjectModal')">
-                        <i class="fas fa-plus"></i> Add New Class
-                    </button>
-                </div>
-            <?php else: ?>
-                <div class="stats-grid">
-                    <?php foreach ($subjects as $subject): ?>
-                    <div class="stat-card-enhanced" onclick="viewClassDetails('<?php echo $subject['class_id']; ?>', '<?php echo $subject['subject_name']; ?>')">
-                        <div class="stat-header-enhanced">
-                            <div class="stat-icon-enhanced">
-                                <i class="fas fa-book-open"></i>
-                            </div>
-                            <div class="stat-info-enhanced">
-                                <h3 class="stat-title-enhanced"><?php echo $subject['subject_name']; ?></h3>
-                                <span class="stat-subtitle-enhanced"><?php echo $subject['class_code']; ?> • <?php echo $subject['subject_code']; ?></span>
-                            </div>
+            <!-- Example classes grid -->
+            <div class="stats-grid">
+                <div class="stat-card-enhanced" onclick="viewClassDetails('101', 'Introduction to Psychology')">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-book-open"></i>
                         </div>
-
-                        <div class="stat-details-enhanced">
-                            <div class="stat-detail-enhanced">
-                                <i class="fas fa-calendar stat-detail-icon"></i>
-                                <span class="stat-detail-text"><?php echo $subject['schedule']; ?></span>
-                            </div>
-                            <div class="stat-detail-enhanced">
-                                <i class="fas fa-map-marker-alt stat-detail-icon"></i>
-                                <span class="stat-detail-text"><?php echo $subject['room']; ?></span>
-                            </div>
-                            <div class="stat-detail-enhanced">
-                                <i class="fas fa-users stat-detail-icon"></i>
-                                <span class="stat-detail-text"><?php echo $enrollment_counts[$subject['subject_id']] ?? 0; ?> students enrolled</span>
-                            </div>
-                        </div>
-
-                        <div class="stat-actions-enhanced">
-                            <button class="stat-action-btn" onclick="event.stopPropagation(); openAttendanceModal('<?php echo $subject['class_id']; ?>', '<?php echo $subject['subject_name']; ?>')">
-                                <i class="fas fa-clipboard-check"></i> Take Attendance
-                            </button>
-                            <button class="stat-action-btn secondary" onclick="event.stopPropagation(); regenerateCode('<?php echo $subject['subject_id']; ?>')">
-                                <i class="fas fa-sync-alt"></i> Regenerate Code
-                            </button>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Introduction to Psychology</h3>
+                            <span class="stat-subtitle-enhanced">PSY101 • PSY</span>
                         </div>
                     </div>
-                    <?php endforeach; ?>
+
+                    <div class="stat-details-enhanced">
+                        <div class="stat-detail-enhanced">
+                            <i class="fas fa-calendar stat-detail-icon"></i>
+                            <span class="stat-detail-text">MWF 9:00-10:30</span>
+                        </div>
+                        <div class="stat-detail-enhanced">
+                            <i class="fas fa-map-marker-alt stat-detail-icon"></i>
+                            <span class="stat-detail-text">Room 201</span>
+                        </div>
+                        <div class="stat-detail-enhanced">
+                            <i class="fas fa-users stat-detail-icon"></i>
+                            <span class="stat-detail-text">25 students enrolled</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-actions-enhanced">
+                        <button class="stat-action-btn" onclick="event.stopPropagation(); openAttendanceModal('101', 'Introduction to Psychology')">
+                            <i class="fas fa-clipboard-check"></i> Take Attendance
+                        </button>
+                        <button class="stat-action-btn secondary" onclick="event.stopPropagation(); regenerateCode('101')">
+                            <i class="fas fa-sync-alt"></i> Regenerate Code
+                        </button>
+                    </div>
                 </div>
-            <?php endif; ?>
+
+                <div class="stat-card-enhanced" onclick="viewClassDetails('102', 'Calculus I')">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Calculus I</h3>
+                            <span class="stat-subtitle-enhanced">MATH101 • MATH</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-details-enhanced">
+                        <div class="stat-detail-enhanced">
+                            <i class="fas fa-calendar stat-detail-icon"></i>
+                            <span class="stat-detail-text">TTh 11:00-12:30</span>
+                        </div>
+                        <div class="stat-detail-enhanced">
+                            <i class="fas fa-map-marker-alt stat-detail-icon"></i>
+                            <span class="stat-detail-text">Room 105</span>
+                        </div>
+                        <div class="stat-detail-enhanced">
+                            <i class="fas fa-users stat-detail-icon"></i>
+                            <span class="stat-detail-text">30 students enrolled</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-actions-enhanced">
+                        <button class="stat-action-btn" onclick="event.stopPropagation(); openAttendanceModal('102', 'Calculus I')">
+                            <i class="fas fa-clipboard-check"></i> Take Attendance
+                        </button>
+                        <button class="stat-action-btn secondary" onclick="event.stopPropagation(); regenerateCode('102')">
+                            <i class="fas fa-sync-alt"></i> Regenerate Code
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Add Subject Modal -->
@@ -757,22 +705,22 @@ foreach ($subjects as $subject) {
                 </div>
                 <div class="modal-body">
                     <form class="modal-form" action="" method="POST">
-                        <input type="hidden" name="action" value="add_subject">
+                        <input type="hidden" name="action" value="add_subject" />
                         <div class="form-group">
                             <label>Subject Code</label>
-                            <input type="text" name="subject_code" required>
+                            <input type="text" name="subject_code" required />
                         </div>
                         <div class="form-group">
                             <label>Subject Name</label>
-                            <input type="text" name="subject_name" required>
+                            <input type="text" name="subject_name" required />
                         </div>
                         <div class="form-group">
                             <label>Schedule</label>
-                            <input type="text" name="schedule" placeholder="e.g., MWF 9:00-10:30" required>
+                            <input type="text" name="schedule" placeholder="e.g., MWF 9:00-10:30" required />
                         </div>
                         <div class="form-group">
                             <label>Room</label>
-                            <input type="text" name="room" required>
+                            <input type="text" name="room" required />
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal('addSubjectModal')">Cancel</button>
@@ -792,23 +740,23 @@ foreach ($subjects as $subject) {
                 </div>
                 <div class="modal-body">
                     <form class="modal-form" action="" method="POST">
-                        <input type="hidden" name="action" value="edit_subject">
-                        <input type="hidden" name="subject_id" id="edit_subject_id">
+                        <input type="hidden" name="action" value="edit_subject" />
+                        <input type="hidden" name="subject_id" id="edit_subject_id" />
                         <div class="form-group">
                             <label>Subject Code</label>
-                            <input type="text" name="subject_code" id="edit_subject_code" required>
+                            <input type="text" name="subject_code" id="edit_subject_code" required />
                         </div>
                         <div class="form-group">
                             <label>Subject Name</label>
-                            <input type="text" name="subject_name" id="edit_subject_name" required>
+                            <input type="text" name="subject_name" id="edit_subject_name" required />
                         </div>
                         <div class="form-group">
                             <label>Schedule</label>
-                            <input type="text" name="schedule" id="edit_schedule" required>
+                            <input type="text" name="schedule" id="edit_schedule" required />
                         </div>
                         <div class="form-group">
                             <label>Room</label>
-                            <input type="text" name="room" id="edit_room" required>
+                            <input type="text" name="room" id="edit_room" required />
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal('editSubjectModal')">Cancel</button>
@@ -827,7 +775,7 @@ foreach ($subjects as $subject) {
                     <button class="modal-close" onclick="closeModal('attendanceModal')">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" name="class_id" id="attendance_class_id">
+                    <input type="hidden" name="class_id" id="attendance_class_id" />
 
                     <!-- Enrolled Students Section -->
                     <div id="enrolledStudentsSection">
@@ -838,7 +786,7 @@ foreach ($subjects as $subject) {
                     <div class="form-group">
                         <label>Add New Attendance Date</label>
                         <div class="date-input-group">
-                            <input type="date" id="new_attendance_date">
+                            <input type="date" id="new_attendance_date" />
                             <button class="btn btn-primary" onclick="addNewAttendanceDate()">
                                 <span>+</span> Add Date
                             </button>
@@ -855,8 +803,8 @@ foreach ($subjects as $subject) {
 
         <!-- Regenerate Code Form -->
         <form id="regenerateForm" action="" method="POST" style="display: none;">
-            <input type="hidden" name="action" value="regenerate_code">
-            <input type="hidden" name="subject_id" id="regenerate_subject_id">
+            <input type="hidden" name="action" value="regenerate_code" />
+            <input type="hidden" name="subject_id" id="regenerate_subject_id" />
         </form>
     </main>
 
@@ -873,11 +821,11 @@ foreach ($subjects as $subject) {
         function viewClassDetails(classId, className) {
             document.getElementById('attendance_class_id').value = classId;
             document.getElementById('attendanceModalTitle').textContent = 'Class Details - ' + className;
-            
+
             // Clear previous content
             document.getElementById('enrolledStudentsSection').innerHTML = '<div style="text-align: center; padding: 1rem;"><span class="loading-spinner">Loading students...</span></div>';
             document.getElementById('attendanceDatesAccordion').innerHTML = '';
-            
+
             // Load enrolled students and attendance dates
             Promise.all([
                 loadEnrolledStudents(classId),
@@ -893,11 +841,11 @@ foreach ($subjects as $subject) {
         function openAttendanceModal(classId, className) {
             document.getElementById('attendance_class_id').value = classId;
             document.getElementById('attendanceModalTitle').textContent = 'Attendance Management - ' + className;
-            
+
             // Clear previous content
             document.getElementById('enrolledStudentsSection').innerHTML = '<div style="text-align: center; padding: 1rem;"><span class="loading-spinner">Loading students...</span></div>';
             document.getElementById('attendanceDatesAccordion').innerHTML = '';
-            
+
             // Load enrolled students and attendance dates
             Promise.all([
                 loadEnrolledStudents(classId),
@@ -912,113 +860,128 @@ foreach ($subjects as $subject) {
 
         function loadEnrolledStudents(classId) {
             return new Promise((resolve, reject) => {
-                fetch('../php/get_class_students.php?class_id=' + classId, { credentials: 'same-origin' })
-                    .then(response => response.json())
-                    .then(students => {
-                        const container = document.getElementById('enrolledStudentsSection');
-                        
-                        if (students.length === 0) {
-                            container.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 1rem;">No students enrolled in this class.</p>';
-                            resolve();
-                            return;
-                        }
-                        
-                        container.innerHTML = `
-                            <div class="enrolled-students-section">
-                                <h4 class="enrolled-students-title">
-                                    <span>👥</span> Enrolled Students (${students.length})
-                                </h4>
-                                <div class="enrolled-students-table-container">
-                                    <table class="enrolled-students-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Student ID</th>
-                                                <th>Name</th>
-                                                <th>Email</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${students.map(student => `
-                                                <tr>
-                                                    <td>${student.student_id}</td>
-                                                    <td>${student.first_name} ${student.last_name}</td>
-                                                    <td>${student.email}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        `;
+                // Simulate fetch with hardcoded data based on classId
+                setTimeout(() => {
+                    let students = [];
+                    if (classId === '101') {
+                        students = [
+                            { student_id: 'S001', first_name: 'John', last_name: 'Doe', email: 'john.doe@example.com' },
+                            { student_id: 'S002', first_name: 'Jane', last_name: 'Smith', email: 'jane.smith@example.com' },
+                            { student_id: 'S003', first_name: 'Bob', last_name: 'Johnson', email: 'bob.johnson@example.com' },
+                            { student_id: 'S004', first_name: 'Alice', last_name: 'Williams', email: 'alice.williams@example.com' },
+                            { student_id: 'S005', first_name: 'Charlie', last_name: 'Brown', email: 'charlie.brown@example.com' }
+                        ];
+                    } else if (classId === '102') {
+                        students = [
+                            { student_id: 'S006', first_name: 'David', last_name: 'Miller', email: 'david.miller@example.com' },
+                            { student_id: 'S007', first_name: 'Emma', last_name: 'Davis', email: 'emma.davis@example.com' },
+                            { student_id: 'S008', first_name: 'Frank', last_name: 'Garcia', email: 'frank.garcia@example.com' },
+                            { student_id: 'S009', first_name: 'Grace', last_name: 'Rodriguez', email: 'grace.rodriguez@example.com' },
+                            { student_id: 'S010', first_name: 'Henry', last_name: 'Martinez', email: 'henry.martinez@example.com' },
+                            { student_id: 'S011', first_name: 'Ivy', last_name: 'Hernandez', email: 'ivy.hernandez@example.com' }
+                        ];
+                    }
+
+                    const container = document.getElementById('enrolledStudentsSection');
+
+                    if (students.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 1rem;">No students enrolled in this class.</p>';
                         resolve();
-                    })
-                    .catch(error => {
-                        console.error('Error loading enrolled students:', error);
-                        document.getElementById('enrolledStudentsSection').innerHTML = '<p style="color: var(--danger); text-align: center;">Error loading students</p>';
-                        reject(error);
-                    });
+                        return;
+                    }
+
+                    container.innerHTML = `
+                        <div class="enrolled-students-section">
+                            <h4 class="enrolled-students-title">
+                                <span>👥</span> Enrolled Students (${students.length})
+                            </h4>
+                            <div class="enrolled-students-table-container">
+                                <table class="enrolled-students-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${students.map(student => `
+                                            <tr>
+                                                <td>${student.student_id}</td>
+                                                <td>${student.first_name} ${student.last_name}</td>
+                                                <td>${student.email}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    resolve();
+                }, 500); // Simulate network delay
             });
         }
 
         function loadAttendanceDates(classId) {
             return new Promise((resolve, reject) => {
-                fetch('../php/get_attendance_dates.php?class_id=' + classId, { credentials: 'same-origin' })
-                    .then(response => response.json())
-                    .then(dates => {
-                        const container = document.getElementById('attendanceDatesAccordion');
-                        container.innerHTML = '';
-                        
-                        if (dates.length === 0) {
-                            container.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 2rem;">No attendance records found.</p>';
-                            resolve();
-                            return;
-                        }
-                        
-                        // Sort dates descending so latest is first
-                        dates.sort((a, b) => new Date(b) - new Date(a));
-                        
-                        dates.forEach(date => {
-                            const dateCard = document.createElement('div');
-                            dateCard.className = 'date-card';
+                // Simulate fetch with hardcoded data based on classId
+                setTimeout(() => {
+                    let dates = [];
+                    if (classId === '101') {
+                        dates = ['2024-01-15', '2024-01-17', '2024-01-22', '2024-01-24'];
+                    } else if (classId === '102') {
+                        dates = ['2024-01-16', '2024-01-18', '2024-01-23', '2024-01-25'];
+                    }
 
-                            // Format date to MM-DD-YYYY
-                            const formattedDate = new Date(date).toLocaleDateString('en-US');
+                    const container = document.getElementById('attendanceDatesAccordion');
+                    container.innerHTML = '';
 
-                            dateCard.innerHTML = `
-                                <div class="date-header" onclick="toggleDateCollapse(this)">
-                                    <h4>${formattedDate}</h4>
-                                    <span class="collapse-icon">▼</span>
-                                </div>
-                                <div class="date-content">
-                                    <div class="students-list" data-date="${date}">
-                                        <!-- Students will be loaded here when expanded -->
-                                    </div>
-                                    <div class="attendance-actions">
-                                        <button class="btn btn-primary" onclick="saveAttendance('${date}')">Save</button>
-                                    </div>
-                                </div>
-                            `;
-
-                            container.appendChild(dateCard);
-                        });
+                    if (dates.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 2rem;">No attendance records found.</p>';
                         resolve();
-                    })
-                    .catch(error => {
-                        console.error('Error loading dates:', error);
-                        alert('Error loading attendance dates. Please try again.');
-                        reject(error);
+                        return;
+                    }
+
+                    // Sort dates descending so latest is first
+                    dates.sort((a, b) => new Date(b) - new Date(a));
+
+                    dates.forEach(date => {
+                        const dateCard = document.createElement('div');
+                        dateCard.className = 'date-card';
+
+                        // Format date to MM-DD-YYYY
+                        const formattedDate = new Date(date).toLocaleDateString('en-US');
+
+                        dateCard.innerHTML = `
+                            <div class="date-header" onclick="toggleDateCollapse(this)">
+                                <h4>${formattedDate}</h4>
+                                <span class="collapse-icon">▼</span>
+                            </div>
+                            <div class="date-content">
+                                <div class="students-list" data-date="${date}">
+                                    <!-- Students will be loaded here when expanded -->
+                                </div>
+                                <div class="attendance-actions">
+                                    <button class="btn btn-primary" onclick="saveAttendance('${date}')">Save</button>
+                                </div>
+                            </div>
+                        `;
+
+                        container.appendChild(dateCard);
                     });
+                    resolve();
+                }, 500); // Simulate network delay
             });
         }
 
         function toggleDateCollapse(header) {
             const content = header.nextElementSibling;
             const icon = header.querySelector('.collapse-icon');
-            
+
             if (content.style.display === 'none') {
                 content.style.display = 'block';
                 icon.textContent = '▲';
-                
+
                 // Load students for this date if not already loaded
                 const date = content.querySelector('.students-list').dataset.date;
                 const classId = document.getElementById('attendance_class_id').value;
@@ -1031,82 +994,92 @@ foreach ($subjects as $subject) {
 
         function loadStudentsForDate(classId, date, container) {
             if (container.querySelector('table')) return; // Already loaded
-            
-            fetch(`../php/get_attendance_for_date.php?class_id=${classId}&date=${date}`, { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(attendanceRecords => {
-                    container.innerHTML = `
-                        <table class="attendance-table">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Status</th>
-                                    <th>Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${attendanceRecords.map(record => `
-                                    <tr>
-                                        <td>${record.student_id}</td>
-                                        <td>${record.first_name} ${record.last_name}</td>
-                                        <td>
-                                            <select name="attendance[${record.student_id}][status]" required class="status-select ${record.status ? 'status-' + record.status.toLowerCase() : ''}">
-                                                <option value="">Select</option>
-                                                <option value="Present" ${record.status === 'Present' ? 'selected' : ''}>Present</option>
-                                                <option value="Absent" ${record.status === 'Absent' ? 'selected' : ''}>Absent</option>
-                                                <option value="Late" ${record.status === 'Late' ? 'selected' : ''}>Late</option>
-                                                <option value="Excused" ${record.status === 'Excused' ? 'selected' : ''}>Excused</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="text" name="attendance[${record.student_id}][remarks]" placeholder="Remarks" value="${record.remarks || ''}">
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
 
-                    // Add event listener to update color on status change
-                    container.querySelectorAll('.status-select').forEach(select => {
-                        select.addEventListener('change', function() {
-                            this.className = 'status-select status-' + this.value.toLowerCase();
-                        });
+            // Simulate fetch with hardcoded attendance data
+            setTimeout(() => {
+                let attendanceRecords = [];
+                if (classId === '101') {
+                    attendanceRecords = [
+                        { student_id: 'S001', first_name: 'John', last_name: 'Doe', status: 'Present', remarks: '' },
+                        { student_id: 'S002', first_name: 'Jane', last_name: 'Smith', status: 'Present', remarks: '' },
+                        { student_id: 'S003', first_name: 'Bob', last_name: 'Johnson', status: 'Absent', remarks: 'Sick' },
+                        { student_id: 'S004', first_name: 'Alice', last_name: 'Williams', status: 'Late', remarks: 'Traffic' },
+                        { student_id: 'S005', first_name: 'Charlie', last_name: 'Brown', status: 'Present', remarks: '' }
+                    ];
+                } else if (classId === '102') {
+                    attendanceRecords = [
+                        { student_id: 'S006', first_name: 'David', last_name: 'Miller', status: 'Present', remarks: '' },
+                        { student_id: 'S007', first_name: 'Emma', last_name: 'Davis', status: 'Present', remarks: '' },
+                        { student_id: 'S008', first_name: 'Frank', last_name: 'Garcia', status: 'Late', remarks: 'Doctor appointment' },
+                        { student_id: 'S009', first_name: 'Grace', last_name: 'Rodriguez', status: 'Present', remarks: '' },
+                        { student_id: 'S010', first_name: 'Henry', last_name: 'Martinez', status: 'Excused', remarks: 'Family emergency' },
+                        { student_id: 'S011', first_name: 'Ivy', last_name: 'Hernandez', status: 'Present', remarks: '' }
+                    ];
+                }
+
+                container.innerHTML = `
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${attendanceRecords.map(record => `
+                                <tr>
+                                    <td>${record.student_id}</td>
+                                    <td>${record.first_name} ${record.last_name}</td>
+                                    <td>
+                                        <select name="attendance[${record.student_id}][status]" required class="status-select ${record.status ? 'status-' + record.status.toLowerCase() : ''}">
+                                            <option value="">Select</option>
+                                            <option value="Present" ${record.status === 'Present' ? 'selected' : ''}>Present</option>
+                                            <option value="Absent" ${record.status === 'Absent' ? 'selected' : ''}>Absent</option>
+                                            <option value="Late" ${record.status === 'Late' ? 'selected' : ''}>Late</option>
+                                            <option value="Excused" ${record.status === 'Excused' ? 'selected' : ''}>Excused</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="attendance[${record.student_id}][remarks]" placeholder="Remarks" value="${record.remarks || ''}">
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                // Add event listener to update color on status change
+                container.querySelectorAll('.status-select').forEach(select => {
+                    select.addEventListener('change', function() {
+                        this.className = 'status-select status-' + this.value.toLowerCase();
                     });
-                })
-                .catch(error => {
-                    console.error('Error loading attendance records:', error);
-                    container.innerHTML = '<p style="color: var(--danger);">Error loading attendance records</p>';
                 });
+            }, 300); // Simulate network delay
         }
 
         function addNewAttendanceDate() {
             const dateInput = document.getElementById('new_attendance_date');
             const date = dateInput.value;
             const classId = document.getElementById('attendance_class_id').value;
-            
+
             if (!date) {
                 alert('Please select a date');
                 return;
             }
-            
+
             // Show loading state
             const addButton = document.querySelector('.btn-primary[onclick="addNewAttendanceDate()"]');
             const originalText = addButton.innerHTML;
             addButton.innerHTML = '<span>Creating...</span>';
             addButton.disabled = true;
-            
-            // Call backend to create attendance date
-            fetch('../php/create_attendance_date.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ class_id: classId, date: date })
-            })
-            .then(response => response.json())
-            .then(data => {
+
+            // Simulate creating attendance date
+            setTimeout(() => {
+                // Simulate success response
+                const data = { success: true, exists: false };
+
                 if (data.success) {
                     if (data.exists) {
                         alert('This date already exists. You can edit the existing attendance records.');
@@ -1128,12 +1101,7 @@ foreach ($subjects as $subject) {
                 } else {
                     alert('Failed to create attendance date: ' + (data.error || 'Unknown error'));
                 }
-            })
-            .catch(error => {
-                console.error('Error creating attendance date:', error);
-                alert('Error creating attendance date. Please try again.');
-            })
-            .finally(() => {
+            }, 500).finally(() => {
                 // Restore button state
                 addButton.innerHTML = originalText;
                 addButton.disabled = false;
@@ -1141,45 +1109,35 @@ foreach ($subjects as $subject) {
             });
         }
 
-function saveAttendance(date) {
+        function saveAttendance(date) {
             const classId = document.getElementById('attendance_class_id').value;
             const studentsList = document.querySelector(`.students-list[data-date="${date}"]`);
-            
+
             if (!studentsList) {
                 alert('Please expand the date first to load students');
                 return;
             }
-            
+
             const attendanceData = [];
             // Only iterate over tbody > tr to avoid header rows
             const rows = studentsList.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const studentIdCell = row.querySelector('td:first-child');
                 if (!studentIdCell) return; // skip if no td found
-                
+
                 const studentId = studentIdCell.textContent;
                 const statusSelect = row.querySelector('select');
                 const remarksInput = row.querySelector('input[type="text"]');
                 const status = statusSelect ? statusSelect.value : '';
                 const remarks = remarksInput ? remarksInput.value : '';
-                
+
                 attendanceData.push({ student_id: studentId, status, remarks });
             });
-            
-            fetch('../php/save_attendance.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    class_id: classId,
-                    date: date,
-                    attendance: attendanceData
-                }),
-                credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
+
+            // Simulate saving attendance
+            setTimeout(() => {
+                const data = { success: true };
+
                 if (data.success) {
                     alert('Attendance saved successfully!');
                     // Reload attendance dates and expand the saved date
@@ -1199,11 +1157,7 @@ function saveAttendance(date) {
                 } else {
                     alert('Failed to save attendance: ' + (data.error || 'Unknown error'));
                 }
-            })
-            .catch(error => {
-                console.error('Error saving attendance:', error);
-                alert('Error saving attendance. Please try again.');
-            });
+            }, 500);
         }
 
         function editAttendance(date) {

@@ -1,119 +1,4 @@
-<?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php');
-    exit();
-}
 
-require_once '../php/db.php';
-
-$user_id = $_SESSION['user_id'];
-$role = $_SESSION['role'];
-
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-
-        if ($action == 'update_profile') {
-            $first_name = $_POST['first_name'];
-            $last_name = $_POST['last_name'];
-            $email = $_POST['email'];
-            $mobile = $_POST['mobile'];
-
-            try {
-                if ($role == 'professor') {
-                    $stmt = $pdo->prepare("UPDATE professors SET first_name = ?, last_name = ?, email = ?, mobile = ?, updated_at = NOW() WHERE professor_id = ?");
-                    $stmt->execute([$first_name, $last_name, $email, $mobile, $user_id]);
-
-                    // Update session data
-                    $_SESSION['first_name'] = $first_name;
-                    $_SESSION['last_name'] = $last_name;
-                    $_SESSION['email'] = $email;
-                    $_SESSION['mobile'] = $mobile;
-                } elseif ($role == 'student') {
-                    $stmt = $pdo->prepare("UPDATE students SET first_name = ?, last_name = ?, email = ?, mobile = ?, updated_at = NOW() WHERE student_id = ?");
-                    $stmt->execute([$first_name, $last_name, $email, $mobile, $user_id]);
-
-                    // Update session data
-                    $_SESSION['first_name'] = $first_name;
-                    $_SESSION['last_name'] = $last_name;
-                    $_SESSION['email'] = $email;
-                    $_SESSION['mobile'] = $mobile;
-                } elseif ($role == 'admin') {
-                    $stmt = $pdo->prepare("UPDATE administrators SET first_name = ?, last_name = ?, email = ?, updated_at = NOW() WHERE admin_id = ?");
-                    $stmt->execute([$first_name, $last_name, $email, $user_id]);
-
-                    // Update session data
-                    $_SESSION['first_name'] = $first_name;
-                    $_SESSION['last_name'] = $last_name;
-                    $_SESSION['email'] = $email;
-                    $_SESSION['mobile'] = $mobile;
-                }
-
-                $success = "Profile updated successfully!";
-            } catch (PDOException $e) {
-                $error = "Error updating profile: " . $e->getMessage();
-            }
-        } elseif ($action == 'change_password') {
-            $current_password = $_POST['current_password'];
-            $new_password = $_POST['new_password'];
-            $confirm_password = $_POST['confirm_password'];
-
-            if ($new_password !== $confirm_password) {
-                $error = "New passwords do not match!";
-            } else {
-                try {
-                    // Verify current password
-                    if ($role == 'professor') {
-                        $stmt = $pdo->prepare("SELECT password FROM professors WHERE professor_id = ?");
-                    } elseif ($role == 'student') {
-                        $stmt = $pdo->prepare("SELECT password FROM students WHERE student_id = ?");
-                    } elseif ($role == 'admin') {
-                        $stmt = $pdo->prepare("SELECT password FROM administrators WHERE admin_id = ?");
-                    }
-                    $stmt->execute([$user_id]);
-                    $user = $stmt->fetch();
-
-                    if (password_verify($current_password, $user['password'])) {
-                        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-
-                        if ($role == 'professor') {
-                            $stmt = $pdo->prepare("UPDATE professors SET password = ?, updated_at = NOW() WHERE professor_id = ?");
-                        } elseif ($role == 'student') {
-                            $stmt = $pdo->prepare("UPDATE students SET password = ?, updated_at = NOW() WHERE student_id = ?");
-                        } elseif ($role == 'admin') {
-                            $stmt = $pdo->prepare("UPDATE administrators SET password = ?, updated_at = NOW() WHERE admin_id = ?");
-                        }
-                        $stmt->execute([$hashed_password, $user_id]);
-
-                        $success = "Password changed successfully!";
-                    } else {
-                        $error = "Current password is incorrect!";
-                    }
-                } catch (PDOException $e) {
-                    $error = "Error changing password: " . $e->getMessage();
-                }
-            }
-        }
-    }
-}
-
-// Fetch current user data
-if ($role == 'professor') {
-    $stmt = $pdo->prepare("SELECT * FROM professors WHERE professor_id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-} elseif ($role == 'student') {
-    $stmt = $pdo->prepare("SELECT * FROM students WHERE student_id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-} elseif ($role == 'admin') {
-    $stmt = $pdo->prepare("SELECT * FROM administrators WHERE admin_id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -378,40 +263,58 @@ if ($role == 'professor') {
     </style>
 </head>
 <body>
-    <?php
-    if ($role == 'admin') {
-        include '../includes/navbar_admin.php';
-        include '../includes/sidebar_admin.php';
-    } elseif ($role == 'professor') {
-        include '../includes/navbar_professor.php';
-        include '../includes/sidebar_professor.php';
-    } elseif ($role == 'student') {
-        include '../includes/navbar_student.php';
-        include '../includes/sidebar_student.php';
-    }
-    ?>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <button type="button" class="hamburger-menu" id="sidebarToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <span class="navbar-title">Global Reciprocal College</span>
+            <span class="navbar-title-mobile">GRC</span>
+        </div>
+        <div class="navbar-user">
+        <span>Welcome, Professor John</span>
+            <div class="user-dropdown">
+                <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-cog" aria-hidden="true"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="settings.html" class="dropdown-item">Settings</a>
+<a href="../index.html" class="dropdown-item">Logout</a>                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="professor_dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="manage_subjects.html" class="sidebar-link"><i class="fas fa-book"></i> Manage Subjects</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="manage_students.html" class="sidebar-link"><i class="fas fa-users"></i> Manage Students</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="professor_manage_schedule.html" class="sidebar-link"><i class="fas fa-chalkboard-teacher"></i> Manage Class</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="settings.html" class="sidebar-link active"><i class="fas fa-cog"></i> Settings</a>
+            </li>
+        </ul>
+    </aside>
 
     <!-- Main Content -->
     <main class="main-content">
         <div class="table-header-enhanced">
-            <h2 class="table-title-enhanced"><i class="fas fa-cog" style="margin-right: 10px;"></i>Account Settings</h2>
+            <h2 class="table-title-enhanced"><i class="fas fa-cog" style="margin-right: 10px;"></i>Professor Settings</h2>
         </div>
 
         <div class="dashboard-container">
-            <?php if (isset($success)): ?>
-                <div class="alert-enhanced alert-success-enhanced">
-                    <i class="fas fa-check-circle alert-icon"></i>
-                    <span><?php echo $success; ?></span>
-                </div>
-            <?php endif; ?>
-
-            <?php if (isset($error)): ?>
-                <div class="alert-enhanced alert-error-enhanced">
-                    <i class="fas fa-exclamation-triangle alert-icon"></i>
-                    <span><?php echo $error; ?></span>
-                </div>
-            <?php endif; ?>
-
             <div class="settings-grid">
                 <!-- Profile Information Section -->
                 <div class="stat-card-enhanced">
@@ -429,42 +332,36 @@ if ($role == 'professor') {
                         <div class="info-grid">
                             <div class="info-item-enhanced">
                                 <span class="info-label-enhanced">User ID</span>
-                                <span class="info-value-enhanced"><?php echo $user_id; ?></span>
+                                <span class="info-value-enhanced">12345</span>
                             </div>
-                            <?php if ($role == 'professor' && isset($user['employee_id'])): ?>
                                 <div class="info-item-enhanced">
                                     <span class="info-label-enhanced">Employee ID</span>
-                                    <span class="info-value-enhanced"><?php echo $user['employee_id']; ?></span>
+                                    <span class="info-value-enhanced">EMP001</span>
                                 </div>
-                            <?php endif; ?>
-                            <?php if ($role == 'professor' && isset($user['department'])): ?>
                                 <div class="info-item-enhanced">
                                     <span class="info-label-enhanced">Department</span>
-                                    <span class="info-value-enhanced"><?php echo $user['department']; ?></span>
+                                    <span class="info-value-enhanced">Computer Science</span>
                                 </div>
-                            <?php endif; ?>
                         </div>
                     </div>
 
-                    <form action="" method="POST" class="form-section-enhanced">
-                        <input type="hidden" name="action" value="update_profile">
-
+                    <form class="form-section-enhanced">
                         <div class="form-grid">
                             <div class="form-group-enhanced">
                                 <label class="form-label-enhanced">First Name</label>
-                                <input type="text" name="first_name" class="form-input-enhanced" value="<?php echo htmlspecialchars($user['first_name']); ?>" required placeholder="Enter your first name">
+                                <input type="text" class="form-input-enhanced" value="John" required placeholder="Enter your first name">
                             </div>
                             <div class="form-group-enhanced">
                                 <label class="form-label-enhanced">Last Name</label>
-                                <input type="text" name="last_name" class="form-input-enhanced" value="<?php echo htmlspecialchars($user['last_name']); ?>" required placeholder="Enter your last name">
+                                <input type="text" class="form-input-enhanced" value="Doe" required placeholder="Enter your last name">
                             </div>
                             <div class="form-group-enhanced">
                                 <label class="form-label-enhanced">Email</label>
-                                <input type="email" name="email" class="form-input-enhanced" value="<?php echo htmlspecialchars($user['email']); ?>" required placeholder="Enter your email">
+                                <input type="email" class="form-input-enhanced" value="john.doe@example.com" required placeholder="Enter your email">
                             </div>
                             <div class="form-group-enhanced">
                                 <label class="form-label-enhanced">Mobile</label>
-                                <input type="text" name="mobile" class="form-input-enhanced" value="<?php echo htmlspecialchars($user['mobile'] ?? '+639000000000'); ?>" required placeholder="Enter your mobile number">
+                                <input type="text" class="form-input-enhanced" value="+639000000000" required placeholder="Enter your mobile number">
                             </div>
                         </div>
 
@@ -488,23 +385,21 @@ if ($role == 'professor') {
                         </div>
                     </div>
 
-                    <form action="" method="POST" class="form-section-enhanced">
-                        <input type="hidden" name="action" value="change_password">
-
+                    <form class="form-section-enhanced">
                         <div class="password-form-grid">
                             <div class="form-group-enhanced">
                                 <label class="form-label-enhanced">Current Password</label>
-                                <input type="password" name="current_password" class="form-input-enhanced" required placeholder="Enter current password">
+                                <input type="password" class="form-input-enhanced" required placeholder="Enter current password">
                             </div>
 
                             <div class="form-grid">
                                 <div class="form-group-enhanced">
                                     <label class="form-label-enhanced">New Password</label>
-                                    <input type="password" name="new_password" class="form-input-enhanced" required placeholder="Enter new password">
+                                    <input type="password" class="form-input-enhanced" required placeholder="Enter new password">
                                 </div>
                                 <div class="form-group-enhanced">
                                     <label class="form-label-enhanced">Confirm Password</label>
-                                    <input type="password" name="confirm_password" class="form-input-enhanced" required placeholder="Confirm new password">
+                                    <input type="password" class="form-input-enhanced" required placeholder="Confirm new password">
                                 </div>
                             </div>
                         </div>
@@ -542,7 +437,39 @@ if ($role == 'professor') {
             }
         });
 
-    // Dropdown behaviour is handled in the included navbar script (../includes/navbar_admin.php)
+        // Dropdown behaviour
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dropdown functionality for multiple dropdowns
+            document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                const menu = dropdown.querySelector('.dropdown-menu');
+
+                if (toggle && menu) {
+                    toggle.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        // Close other dropdowns first
+                        document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                            if (otherMenu !== menu) {
+                                otherMenu.classList.remove('show');
+                                const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                                if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                        const isOpen = menu.classList.toggle('show');
+                        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    });
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                    if (!event.target.closest('.user-dropdown')) {
+                        menu.classList.remove('show');
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>

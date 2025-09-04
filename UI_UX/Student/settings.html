@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Settings - Global Reciprocal College</title>
+    <link rel="stylesheet" href="../css/styles_fixed.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card-enhanced {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card-enhanced:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-header-enhanced {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-icon-enhanced {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-info-enhanced {
+            flex: 1;
+        }
+
+        .stat-title-enhanced {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin: 0 0 0.25rem 0;
+        }
+
+        .stat-subtitle-enhanced {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .current-info-enhanced {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item-enhanced {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label-enhanced {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value-enhanced {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-section-enhanced {
+            margin-top: 2rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group-enhanced {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .form-label-enhanced {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input-enhanced {
+            padding: 1rem;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-input-enhanced:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .form-input-enhanced::placeholder {
+            color: var(--gray);
+        }
+
+        .stat-actions-enhanced {
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 2rem;
+            margin-top: 2rem;
+        }
+
+        .stat-primary-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .stat-primary-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card-enhanced {
+                padding: 1.5rem;
+            }
+
+            .dashboard-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <button type="button" class="hamburger-menu" id="sidebarToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <span class="navbar-title">Global Reciprocal College</span>
+            <span class="navbar-title-mobile">GRC</span>
+        </div>
+        <div class="navbar-user">
+            <span>Welcome, John</span>
+            <div class="user-dropdown">
+                <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-cog" aria-hidden="true"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="settings.html" class="dropdown-item active">Settings</a>
+<a href="../index.html" class="dropdown-item">Logout</a>                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="student_dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="student_manage_schedule.html" class="sidebar-link"><i class="fas fa-calendar-alt"></i> My Schedule</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="settings.html" class="sidebar-link active"><i class="fas fa-cog"></i> Settings</a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="table-header-enhanced">
+            <h2 class="table-title-enhanced"><i class="fas fa-cog" style="margin-right: 10px;"></i>Account Settings</h2>
+        </div>
+
+        <div class="dashboard-container">
+            <div class="settings-grid">
+                <!-- Profile Information Section -->
+                <div class="stat-card-enhanced">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Profile Information</h3>
+                            <span class="stat-subtitle-enhanced">Update your personal details</span>
+                        </div>
+                    </div>
+
+                    <div class="current-info-enhanced">
+                        <div class="info-grid">
+                            <div class="info-item-enhanced">
+                                <span class="info-label-enhanced">User ID</span>
+                                <span class="info-value-enhanced">12345</span>
+                            </div>
+                            <div class="info-item-enhanced">
+                                <span class="info-label-enhanced">Student ID</span>
+                                <span class="info-value-enhanced">STU001</span>
+                            </div>
+                            <div class="info-item-enhanced">
+                                <span class="info-label-enhanced">Program</span>
+                                <span class="info-value-enhanced">Computer Science</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form class="form-section-enhanced">
+                        <div class="form-grid">
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">First Name</label>
+                                <input type="text" class="form-input-enhanced" value="John" required placeholder="Enter your first name" />
+                            </div>
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">Last Name</label>
+                                <input type="text" class="form-input-enhanced" value="Doe" required placeholder="Enter your last name" />
+                            </div>
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">Email</label>
+                                <input type="email" class="form-input-enhanced" value="john.doe@example.com" required placeholder="Enter your email" />
+                            </div>
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">Mobile</label>
+                                <input type="text" class="form-input-enhanced" value="+639000000000" required placeholder="Enter your mobile number" />
+                            </div>
+                        </div>
+
+                        <div class="stat-actions-enhanced">
+                            <button type="submit" class="stat-primary-btn">
+                                <i class="fas fa-save"></i> Update Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Change Password Section -->
+                <div class="stat-card-enhanced">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Change Password</h3>
+                            <span class="stat-subtitle-enhanced">Secure your account</span>
+                        </div>
+                    </div>
+
+                    <form class="form-section-enhanced">
+                        <div class="form-grid">
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">Current Password</label>
+                                <input type="password" class="form-input-enhanced" required placeholder="Enter current password" />
+                            </div>
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">New Password</label>
+                                <input type="password" class="form-input-enhanced" required placeholder="Enter new password" />
+                            </div>
+                            <div class="form-group-enhanced">
+                                <label class="form-label-enhanced">Confirm Password</label>
+                                <input type="password" class="form-input-enhanced" required placeholder="Confirm new password" />
+                            </div>
+                        </div>
+
+                        <div class="stat-actions-enhanced">
+                            <button type="submit" class="stat-primary-btn">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Hamburger menu toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('show');
+            if (window.innerWidth <= 900) {
+                document.body.classList.toggle('sidebar-open');
+            }
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
+            }
+        });
+
+        // Dropdown behaviour
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dropdown functionality for multiple dropdowns
+            document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                const menu = dropdown.querySelector('.dropdown-menu');
+
+                if (toggle && menu) {
+                    toggle.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        // Close other dropdowns first
+                        document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                            if (otherMenu !== menu) {
+                                otherMenu.classList.remove('show');
+                                const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                                if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                        const isOpen = menu.classList.toggle('show');
+                        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    });
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                    if (!event.target.closest('.user-dropdown')) {
+                        menu.classList.remove('show');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

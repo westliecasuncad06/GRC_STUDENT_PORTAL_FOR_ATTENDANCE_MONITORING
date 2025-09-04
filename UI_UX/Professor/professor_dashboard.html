@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Professor Dashboard - Global Reciprocal College</title>
+    <link rel="stylesheet" href="../css/styles_fixed.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        /* Keep all existing styles as is */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .stat-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .stat-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .stat-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .badge-present { background: #d4edda; color: #155724; }
+        .badge-absent { background: #f8d7da; color: #721c24; }
+        .badge-late { background: #fff3cd; color: #856404; }
+        .badge-excused { background: #d1ecf1; color: #0c5460; }
+        .recent-dates {
+            margin-top: 1rem;
+        }
+        .date-list {
+            list-style: none;
+            padding: 0;
+        }
+        .date-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        .date-item:last-child {
+            border-bottom: none;
+        }
+        .view-report-btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .view-report-btn:hover {
+            background: var(--primary-dark);
+        }
+        /* Attendance Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 0;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .modal-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        .modal-close:hover {
+            background-color: #f8f9fa;
+        }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .attendance-record {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .record-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr;
+            gap: 1rem;
+            padding: 0.75rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+        .record-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr;
+            gap: 1rem;
+            padding: 0.75rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .attendance-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        .attendance-status.Present {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .attendance-status.Absent {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .attendance-status.Late {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .attendance-status.Excused {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .attendance-status.null {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .students-table th,
+        .students-table td {
+            padding: 0.75rem;
+            border: 1px solid var(--light-gray);
+            text-align: left;
+        }
+        .students-table th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        .students-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .attendance-rate {
+            font-weight: 600;
+        }
+        .rate-high { color: #28a745; }
+        .rate-medium { color: #ffc107; }
+        .rate-low { color: #dc3545; }
+        .no-data {
+            text-align: center;
+            color: var(--gray);
+            padding: 2rem;
+            font-style: italic;
+        }
+        .tab-container {
+            margin-bottom: 2rem;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Dropdown Menu Styles */
+        .user-dropdown {
+            position: relative;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            min-width: 150px;
+            z-index: 1000;
+            margin-top: 0.5rem;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--dark);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: var(--light-gray);
+        }
+        .dropdown-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+        .dropdown-item:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        /* Enhanced Stat Card Styles */
+        .stat-card-enhanced {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card-enhanced:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+        .stat-header-enhanced {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-icon-enhanced {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .stat-info-enhanced {
+            flex: 1;
+        }
+        .stat-title-enhanced {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin: 0 0 0.25rem 0;
+        }
+        .stat-subtitle-enhanced {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+        .stat-metrics-enhanced {
+            margin-bottom: 1.5rem;
+        }
+        .stat-main-metric {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .stat-value-enhanced {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+        .stat-label-enhanced {
+            font-size: 1rem;
+            color: var(--gray);
+            font-weight: 600;
+        }
+        .stat-breakdown-enhanced {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .stat-breakdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .stat-breakdown-icon {
+            font-size: 1.2rem;
+            width: 30px;
+            text-align: center;
+        }
+        .stat-breakdown-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        .stat-breakdown-label {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+        .stat-actions-enhanced {
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 1.5rem;
+        }
+        .stat-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+        .stat-recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .stat-recent-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .stat-recent-date {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--dark);
+            font-weight: 500;
+        }
+        .stat-action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: background-color 0.2s;
+        }
+        .stat-action-btn:hover {
+            background: var(--primary-dark);
+        }
+        .stat-empty-enhanced {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        .stat-empty-icon {
+            font-size: 3rem;
+            color: var(--gray);
+            margin-bottom: 1rem;
+            opacity: 0.6;
+        }
+        .stat-empty-text {
+            font-size: 1.1rem;
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+        .stat-primary-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-primary-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        /* Enhanced Table Header */
+        .table-header-enhanced {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .table-title-enhanced {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        @media (max-width: 768px) {
+            .stat-card-enhanced {
+                padding: 1.5rem;
+            }
+            .stat-breakdown-enhanced {
+                grid-template-columns: 1fr;
+            }
+            .stat-recent-item {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+            .stat-action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <button type="button" class="hamburger-menu" id="sidebarToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <span class="navbar-title">Global Reciprocal College</span>
+        <span class="navbar-title-mobile">GRC</span>
+    </div>
+    <div class="navbar-user">
+        <span>Welcome, Professor John</span>
+        <div class="user-dropdown">
+            <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-cog" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="settings.html" class="dropdown-item">Settings</a>
+                <a href="../index.html" class="dropdown-item">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[navbar_professor] DOMContentLoaded');
+    // Dropdown functionality for multiple dropdowns
+    document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(event) {
+                console.log('[navbar_professor] dropdown toggle clicked');
+                event.stopPropagation();
+                // Close other dropdowns first
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.remove('show');
+                        const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                        if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                const isOpen = menu.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+            if (!event.target.closest('.user-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+    });
+});
+</script>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="professor_dashboard.html" class="sidebar-link active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="manage_subjects.html" class="sidebar-link"><i class="fas fa-book"></i> Manage Subjects</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="manage_students.html" class="sidebar-link"><i class="fas fa-users"></i> Manage Students</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="professor_manage_schedule.html" class="sidebar-link"><i class="fas fa-chalkboard-teacher"></i> Manage Class</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="settings.html" class="sidebar-link"><i class="fas fa-cog"></i> Settings</a>
+            </li>
+        </ul>
+</aside>
+
+<script>
+// Hamburger menu toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('show');
+    // Optionally add overlay for mobile
+    if (window.innerWidth <= 900) {
+        document.body.classList.toggle('sidebar-open');
+    }
+});
+
+// Optional: Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+        if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+            sidebar.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+    }
+});
+</script>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="table-header-enhanced">
+        <h2 class="table-title-enhanced"><i class="fas fa-chart-line" style="margin-right: 10px;"></i>Professor Dashboard - Attendance Reports & Analytics</h2>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Attendance Reports -->
+        <div class="reports-container">
+            <div class="stats-grid">
+                <!-- Subject 1: Computer Science 101 -->
+                <div class="stat-card-enhanced">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-book-open">    </i>
+                        </div>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Computer Science 101</h3>
+                            <span class="stat-subtitle-enhanced">CS101</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-metrics-enhanced">
+                        <div class="stat-main-metric">
+                            <div class="stat-value-enhanced">85.5%</div>
+                            <div class="stat-label-enhanced">Attendance Rate</div>
+                        </div>
+
+                        <div class="stat-breakdown-enhanced">
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #28a745;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-breakdown-value">25</div>
+                                <div class="stat-breakdown-label">Present</div>
+                            </div>
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #dc3545;">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="stat-breakdown-value">3</div>
+                                <div class="stat-breakdown-label">Absent</div>
+                            </div>
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #ffc107;">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-breakdown-value">2</div>
+                                <div class="stat-breakdown-label">Late</div>
+                            </div>
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #17a2b8;">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div class="stat-breakdown-value">1</div>
+                                <div class="stat-breakdown-label">Excused</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-actions-enhanced">
+                        <h4 class="stat-section-title">Recent Sessions</h4>
+                        <div class="stat-recent-list">
+                            <div class="stat-recent-item">
+                                <div class="stat-recent-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Oct 15, 2024
+                                </div>
+                                <button class="stat-action-btn" onclick="viewAttendanceModal('CS101', '2024-10-15')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                            <div class="stat-recent-item">
+                                <div class="stat-recent-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Oct 12, 2024
+                                </div>
+                                <button class="stat-action-btn" onclick="viewAttendanceModal('CS101', '2024-10-12')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                            <div class="stat-recent-item">
+                                <div class="stat-recent-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Oct 10, 2024
+                                </div>
+                                <button class="stat-action-btn" onclick="viewAttendanceModal('CS101', '2024-10-10')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subject 2: Mathematics 201 -->
+                <div class="stat-card-enhanced">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Mathematics 201</h3>
+                            <span class="stat-subtitle-enhanced">MATH201</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-metrics-enhanced">
+                        <div class="stat-main-metric">
+                            <div class="stat-value-enhanced">92.3%</div>
+                            <div class="stat-label-enhanced">Attendance Rate</div>
+                        </div>
+
+                        <div class="stat-breakdown-enhanced">
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #28a745;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-breakdown-value">28</div>
+                                <div class="stat-breakdown-label">Present</div>
+                            </div>
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #dc3545;">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="stat-breakdown-value">1</div>
+                                <div class="stat-breakdown-label">Absent</div>
+                            </div>
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #ffc107;">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-breakdown-value">1</div>
+                                <div class="stat-breakdown-label">Late</div>
+                            </div>
+                            <div class="stat-breakdown-item">
+                                <div class="stat-breakdown-icon" style="color: #17a2b8;">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div class="stat-breakdown-value">0</div>
+                                <div class="stat-breakdown-label">Excused</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-actions-enhanced">
+                        <h4 class="stat-section-title">Recent Sessions</h4>
+                        <div class="stat-recent-list">
+                            <div class="stat-recent-item">
+                                <div class="stat-recent-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Oct 14, 2024
+                                </div>
+                                <button class="stat-action-btn" onclick="viewAttendanceModal('MATH201', '2024-10-14')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                            <div class="stat-recent-item">
+                                <div class="stat-recent-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Oct 11, 2024
+                                </div>
+                                <button class="stat-action-btn" onclick="viewAttendanceModal('MATH201', '2024-10-11')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subject 3: Physics 301 -->
+                <div class="stat-card-enhanced">
+                    <div class="stat-header-enhanced">
+                        <div class="stat-icon-enhanced">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="stat-info-enhanced">
+                            <h3 class="stat-title-enhanced">Physics 301</h3>
+                            <span class="stat-subtitle-enhanced">PHYS301</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-empty-enhanced">
+                        <div class="stat-empty-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-empty-text">No attendance records yet</div>
+                        <button class="stat-primary-btn" onclick="location.href='professor_manage_schedule.html'">
+                            <i class="fas fa-plus"></i> Take Attendance
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Attendance Modal -->
+    <div id="attendanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Attendance Details</h3>
+                <button class="modal-close" onclick="closeAttendanceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="attendance-record">
+                    <div class="record-header">
+                        <div>Student Name</div>
+                        <div>Status</div>
+                        <div>Time</div>
+                    </div>
+                    <div class="record-item">
+                        <div>Alice Johnson</div>
+                        <div class="attendance-status Present">Present</div>
+                        <div>9:00 AM</div>
+                    </div>
+                    <div class="record-item">
+                        <div>Bob Smith</div>
+                        <div class="attendance-status Late">Late</div>
+                        <div>9:15 AM</div>
+                    </div>
+                    <div class="record-item">
+                        <div>Charlie Brown</div>
+                        <div class="attendance-status Absent">Absent</div>
+                        <div>-</div>
+                    </div>
+                    <div class="record-item">
+                        <div>Diana Prince</div>
+                        <div class="attendance-status Excused">Excused</div>
+                        <div>9:05 AM</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// Modal functionality
+function viewAttendanceModal(subject, date) {
+    const modal = document.getElementById('attendanceModal');
+    const modalTitle = document.getElementById('modalTitle');
+    modalTitle.textContent = `Attendance Details - ${subject} (${date})`;
+    modal.classList.add('show');
+}
+
+function closeAttendanceModal() {
+    const modal = document.getElementById('attendanceModal');
+    modal.classList.remove('show');
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('attendanceModal');
+    if (event.target === modal) {
+        closeAttendanceModal();
+    }
+});
+</script>
+</body>
+</html>

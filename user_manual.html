@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRC Student Portal - User Manual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #C62828;
+            --primary-dark: #B71C1C;
+            --secondary: #2E7D32;
+            --accent: #1565C0;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .nav {
+            background: var(--light);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--light-gray);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav a:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+            scroll-margin-top: 100px;
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .section h3 {
+            font-size: 1.5rem;
+            color: var(--secondary);
+            margin: 2rem 0 1rem 0;
+        }
+
+        .section h4 {
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin: 1.5rem 0 0.5rem 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-item {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--secondary);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+        }
+
+        .stats-preview {
+            background: var(--light);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid var(--light-gray);
+        }
+
+        .footer {
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .screenshot-placeholder {
+            background: var(--light-gray);
+            border: 2px dashed var(--gray);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            color: var(--gray);
+        }
+
+        @media (max-width: 768px) {
+            .nav ul {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header {
+                padding: 2rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 1rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-graduation-cap"></i> Global Reciprocal College</h1>
+            <p>Student Portal for Attendance Monitoring - User Manual</p>
+        </header>
+
+        <nav class="nav">
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#admin-guide">Admin Guide</a></li>
+                <li><a href="#professor-guide">Professor Guide</a></li>
+                <li><a href="#student-guide">Student Guide</a></li>
+                <li><a href="#navigation">Navigation</a></li>
+                <li><a href="#support">Support</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <section id="introduction" class="section">
+                <h2><i class="fas fa-info-circle"></i> Introduction</h2>
+                <p>Welcome to the Global Reciprocal College (GRC) Student Portal! This comprehensive web-based system is designed to streamline attendance monitoring and academic management for our institution.</p>
+
+                <div class="card">
+                    <h3>System Overview</h3>
+                    <p>The GRC Student Portal is a role-based attendance monitoring system that provides different functionalities for Administrators, Professors, and Students. The system features real-time attendance tracking, comprehensive analytics, and an intuitive user interface.</p>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <div class="feature-icon"><i class="fas fa-users"></i></div>
+                            <h4>Role-Based Access</h4>
+                            <p>Secure access control for Admin, Professor, and Student roles</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                            <h4>Real-time Analytics</h4>
+                            <p>Comprehensive attendance reports and data visualization</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                            <h4>Responsive Design</h4>
+                            <p>Works seamlessly on desktop, tablet, and mobile devices</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                            <h4>Secure Portal</h4>
+                            <p>Protected student data with encrypted authentication</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="getting-started" class="section">
+                <h2><i class="fas fa-play-circle"></i> Getting Started</h2>
+
+                <div class="card">
+                    <h3>Login Page</h3>
+                    <p>The login page is the entry point to the GRC Student Portal. It features a modern design with the college logo and key features highlighted.</p>
+
+                    <div class="screenshot-placeholder">
+                        <i class="fas fa-image" style="font-size: 3rem;"></i>
+                        <p>Login Page Screenshot</p>
+                        <small>Features college branding, login form, and feature highlights</small>
+                    </div>
+
+                    <h4>How to Login:</h4>
+                    <ol class="step-list">
+                        <li>Open your web browser and navigate to the GRC Student Portal URL</li>
+                        <li>Enter your email address in the "Email Address" field</li>
+                        <li>Enter your password in the "Password" field</li>
+                        <li>Click the "Sign In" button to access your dashboard</li>
+                        <li>If you encounter an error, check your credentials and try again</li>
+                    </ol>
+
+                    <div class="highlight">
+                        <strong>Note:</strong> If you don't have an account, click the "Create account" link to register as a new user.
+                    </div>
+                </div>
+            </section>
+
+            <section id="admin-guide" class="section">
+                <h2><i class="fas fa-cog"></i> Administrator Guide</h2>
+                <div class="role-badge">Admin Role</div>
+
+                <div class="card">
+                    <h3>Admin Dashboard Overview</h3>
+                    <p>As an administrator, you have access to comprehensive system management tools and overview statistics.</p>
+
+                    <div class="stats-preview">
+                        <h4>Dashboard Statistics Include:</h4>
+                        <ul>
+                            <li><i class="fas fa-user-graduate"></i> Total Students</li>
+                            <li><i class="fas fa-chalkboard-teacher"></i> Total Professors</li>
+                            <li><i class="fas fa-school"></i> Total Classes</li>
+                            <li><i class="fas fa-book-open"></i> Total Subjects</li>
+                        </ul>
+                    </div>
+
+                    <h4>Admin Functions:</h4>
+                    <ul>
+                        <li><strong>Manage Professors:</strong> Add, edit, and remove professor accounts</li>
+                        <li><strong>Manage Students:</strong> Add, edit, and remove student accounts</li>
+                        <li><strong>Manage Schedule:</strong> Create and modify class schedules</li>
+                        <li><strong>View Recent Activities:</strong> Monitor system activities and changes</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Navigation for Admins</h3>
+                    <p>Use the sidebar menu to access different management sections:</p>
+                    <ul>
+                        <li><strong>Dashboard:</strong> Overview of system statistics</li>
+                        <li><strong>Manage Professors:</strong> Professor account management</li>
+                        <li><strong>Manage Students:</strong> Student account management</li>
+                        <li><strong>Manage Schedule:</strong> Class schedule management</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="professor-guide" class="section">
+                <h2><i class="fas fa-chalkboard-teacher"></i> Professor Guide</h2>
+                <div class="role-badge">Professor Role</div>
+
+                <div class="card">
+                    <h3>Professor Dashboard Overview</h3>
+                    <p>Professors can view attendance reports, analytics, and manage their classes and subjects.</p>
+
+                    <h4>Key Features:</h4>
+                    <ul>
+                        <li><strong>Attendance Reports:</strong> View attendance statistics per subject</li>
+                        <li><strong>Analytics Charts:</strong> Pie charts for attendance distribution, bar charts for monthly trends</li>
+                        <li><strong>Student-wise Statistics:</strong> Individual student attendance records</li>
+                        <li><strong>Recent Sessions:</strong> Quick access to recent attendance data</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Managing Attendance</h3>
+                    <p>Professors can take attendance and view detailed reports:</p>
+                    <ol class="step-list">
+                        <li>Navigate to "Manage Class" from the sidebar</li>
+                        <li>Select the class and date for attendance</li>
+                        <li>Mark attendance for each student (Present, Absent, Late, Excused)</li>
+                        <li>Add remarks if necessary</li>
+                        <li>Save the attendance record</li>
+                    </ol>
+                </div>
+
+                <div class="card">
+                    <h3>Professor Navigation</h3>
+                    <ul>
+                        <li><strong>Dashboard:</strong> Attendance reports and analytics</li>
+                        <li><strong>Manage Subjects:</strong> Add and manage course subjects</li>
+                        <li><strong>Manage Class:</strong> Take attendance and manage class schedules</li>
+                        <li><strong>Settings:</strong> Update personal information</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="student-guide" class="section">
+                <h2><i class="fas fa-user-graduate"></i> Student Guide</h2>
+                <div class="role-badge">Student Role</div>
+
+                <div class="card">
+                    <h3>Student Dashboard Overview</h3>
+                    <p>Students can view their personal attendance records and enrolled classes.</p>
+
+                    <h4>Dashboard Features:</h4>
+                    <ul>
+                        <li><strong>Per-Subject Attendance:</strong> Attendance rate and breakdown for each enrolled subject</li>
+                        <li><strong>Overall Analytics:</strong> Pie chart for attendance distribution, bar chart for monthly trends</li>
+                        <li><strong>Recent Attendance:</strong> Table of recent attendance records</li>
+                        <li><strong>Enrolled Classes:</strong> List of all enrolled classes with professor and schedule information</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Viewing Attendance Details</h3>
+                    <p>Students can view detailed attendance information:</p>
+                    <ol class="step-list">
+                        <li>Click on "View" button next to any attendance record</li>
+                        <li>A modal window will open showing attendance details</li>
+                        <li>Review your status and any remarks from the professor</li>
+                        <li>Close the modal when finished</li>
+                    </ol>
+                </div>
+
+                <div class="card">
+                    <h3>Student Navigation</h3>
+                    <ul>
+                        <li><strong>Dashboard:</strong> Personal attendance overview</li>
+                        <li><strong>My Subjects:</strong> View enrolled subjects and schedules</li>
+                        <li><strong>Settings:</strong> Update personal information</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="navigation" class="section">
+                <h2><i class="fas fa-compass"></i> Navigation and Common Features</h2>
+
+                <div class="card">
+                    <h3>Sidebar Navigation</h3>
+                    <p>All users have access to a sidebar menu for navigation:</p>
+                    <ul>
+                        <li><strong>Hamburger Menu:</strong> Click the three lines (☰) to toggle the sidebar on mobile devices</li>
+                        <li><strong>Active Page:</strong> The current page is highlighted in the sidebar</li>
+                        <li><strong>Responsive Design:</strong> Sidebar collapses automatically on smaller screens</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>User Dropdown Menu</h3>
+                    <p>Located in the top-right corner of the page:</p>
+                    <ul>
+                        <li><strong>Settings:</strong> Access to update personal information</li>
+                        <li><strong>Logout:</strong> Securely log out of the system</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Common UI Elements</h3>
+                    <ul>
+                        <li><strong>Cards:</strong> Information is displayed in card-based layouts</li>
+                        <li><strong>Charts:</strong> Analytics are visualized using interactive charts</li>
+                        <li><strong>Modals:</strong> Detailed information appears in popup windows</li>
+                        <li><strong>Tables:</strong> Data is presented in organized tables</li>
+                        <li><strong>Buttons:</strong> Actions are triggered by clearly labeled buttons</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="support" class="section">
+                <h2><i class="fas fa-life-ring"></i> Support and Contact</h2>
+
+                <div class="card">
+                    <h3>Getting Help</h3>
+                    <p>If you encounter any issues or need assistance:</p>
+                    <ul>
+                        <li><strong>Check this manual:</strong> Review the relevant section for your user role</li>
+                        <li><strong>Contact Administrator:</strong> Reach out to the system administrator for technical support</li>
+                        <li><strong>Report Issues:</strong> Use the feedback system to report bugs or suggest improvements</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Best Practices</h3>
+                    <ul>
+                        <li>Always log out when finished using the system</li>
+                        <li>Keep your login credentials secure and confidential</li>
+                        <li>Regularly check your attendance records for accuracy</li>
+                        <li>Report any discrepancies to your professor or administrator</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 Global Reciprocal College. All rights reserved.</p>
+            <p>Student Portal for Attendance Monitoring - Version 1.0</p>
+        </footer>
+    </div>
+</body>
+</html>

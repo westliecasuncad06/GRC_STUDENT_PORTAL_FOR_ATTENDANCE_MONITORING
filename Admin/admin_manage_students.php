@@ -94,14 +94,131 @@ $students = $pdo->query($query)->fetchAll();
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .enhanced-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border-left: 4px solid var(--primary);
-            transition: all 0.3s ease;
+        .enhanced-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .enhanced-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .header-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            max-width: 600px;
+        }
+        .search-container {
+            padding-top: 1rem;
+            position: relative;
+            flex-grow: 1;
+            min-width: 200px;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+        }
+        .search-input {
+            width: 100%;
+            height: 40px;
+            padding: 10px 16px 10px 40px;
+            border: 2px solid #dc3545;
+            border-radius: 12px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+            background-color: #fef2f2;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #c82333;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+            background-color: white;
+        }
+        .search-icon {
+            position: absolute;
+            left: 11px;
+            top: 65%;
+            transform: translateY(-50%);
+            color: #dc3545;
+            font-size: 1.1rem;
+        }
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+        }
+        .btn-primary {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(220, 53, 69, 0.5);
+        }
+        .add-professor-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            height: 40px;
+            box-sizing: border-box;
+            transition: background 0.3s, transform 0.3s ease;
+            box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+        }
+        .add-professor-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(220, 53, 69, 0.5);
+        }
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .table th {
+            background: var(--light);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 2px solid var(--primary);
+        }
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--light-gray);
         }
         .table tbody tr:nth-child(even) {
             background-color: #f8f9fa;
@@ -110,166 +227,27 @@ $students = $pdo->query($query)->fetchAll();
             background-color: #e3f2fd;
             transition: background-color 0.3s ease;
         }
-        .btn-icon {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .badge-active {
-            background: #d4edda;
-            color: #155724;
-        }
-        .badge-inactive {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .search-container {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .search-input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid var(--light-gray);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: border-color 0.3s ease;
-        }
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
-        }
-        .filter-select {
-            padding: 12px 16px;
-            border: 2px solid var(--light-gray);
-            border-radius: 8px;
-            background: white;
-            font-size: 0.9rem;
-        }
         .action-buttons {
             display: flex;
             gap: 5px;
             flex-wrap: wrap;
         }
-        .modal-form .form-group {
-            position: relative;
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 6px;
         }
-        .modal-form input, .modal-form select {
-            padding-left: 40px;
-        }
-        .form-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray);
-            font-size: 1rem;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stats-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            border-top: 4px solid var(--primary);
-            transition: transform 0.3s ease;
-        }
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
-        .stats-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-        .stats-label {
-            color: var(--gray);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        .table-header-enhanced {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        .btn-primary {
+            background: var(--primary);
             color: white;
-            padding: 1rem 2rem;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0;
         }
-        .table-title-enhanced {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin: 0;
+        .btn-danger {
+            background: #dc3545;
+            color: white;
         }
-        .alert {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-        }
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .fade-in {
-            animation: fadeInUp 0.5s ease-out;
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        .fade-out {
-            animation: fadeOut 0.5s ease-out;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        @media (max-width: 768px) {
-            .table-header-enhanced {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
-            }
-            .search-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .action-buttons {
-                justify-content: center;
-            }
+        .btn-primary:hover, .btn-danger:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
         }
         .modal {
             display: none;
@@ -351,72 +329,177 @@ $students = $pdo->query($query)->fetchAll();
             background: #f8f9fa;
             border-radius: 0 0 16px 16px;
         }
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
+        }
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 400px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .fade-in {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        .fade-out {
+            animation: fadeOut 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @media (max-width: 768px) {
+            .enhanced-header {
+                gap: 1rem;
+                text-align: center;
+            }
+            .search-container {
+                width: 100%;
+                max-width: 300px;
+            }
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+            .modal-body {
+                padding: 1rem;
+            }
+            .action-buttons {
+                justify-content: center;
+            }
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stats-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 4px solid var(--primary);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        .stats-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        .stats-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        .stats-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stats-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <button class="hamburger-menu" id="sidebarToggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <span class="navbar-title">Global Reciprocal College</span>
-            <span class="navbar-title-mobile">GRC</span>
-        </div>
-        <div class="navbar-user">
-            <span>Welcome, <?php echo $_SESSION['name']; ?></span>
-            <div class="user-dropdown">
-                <button class="dropdown-toggle">⚙️</button>
-                <div class="dropdown-menu">
+    <?php include '../includes/navbar_admin.php'; ?>
 
-                    <a href="../php/logout.php" class="dropdown-item">Logout</a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <ul class="sidebar-menu">
-            <li class="sidebar-item">
-                <a href="admin_dashboard.php" class="sidebar-link">Dashboard</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="admin_manage_professors.php" class="sidebar-link">Manage Professors</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="admin_manage_students.php" class="sidebar-link active">Manage Students</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="admin_manage_schedule.php" class="sidebar-link">Manage Schedule</a>
-            </li>
-
-        </ul>
-    </aside>
+    <?php include '../includes/sidebar_admin.php'; ?>
 
     <!-- Main Content -->
     <main class="main-content" role="main" tabindex="-1">
-        <div class="table-header-enhanced">
-            <h2 class="table-title-enhanced"><i class="fas fa-users" style="margin-right: 10px;"></i>Manage Students</h2>
-            <div class="btn-group">
-                <input type="search" id="searchInput" class="search-input" placeholder="Search students..." aria-label="Search students" onkeyup="filterStudents()" />
-                <button class="btn btn-primary btn-icon" type="button" onclick="openModal('addStudentModal')" aria-haspopup="dialog">
-                    <i class="fas fa-plus"></i> Add Student
-                </button>
+            <div class="enhanced-header fade-in">
+                <h1 class="header-title"><i class="fas fa-users" style="margin-right: 15px;"></i>Manage Students</h1>
+                <div class="header-actions">
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search students..." onkeyup="filterStudents()">
+                    </div>
+                    <button class="add-professor-btn" onclick="openModal('addStudentModal')">
+                        <i class="fas fa-plus"></i>
+                        Add Student
+                    </button>
+                </div>
             </div>
-        </div>
 
         <?php if (isset($success)): ?>
-            <div class="alert alert-success fade-in" role="alert" tabindex="0">
+            <div class="alert alert-success fade show fade-in" role="alert">
                 <i class="fas fa-check-circle"></i>
                 <?php echo htmlspecialchars($success); ?>
             </div>
         <?php endif; ?>
 
         <?php if (isset($error)): ?>
-            <div class="alert alert-danger fade-in" role="alert" tabindex="0">
+            <div class="alert alert-danger fade show fade-in" role="alert">
                 <i class="fas fa-exclamation-triangle"></i>
                 <?php echo htmlspecialchars($error); ?>
             </div>
@@ -440,20 +523,19 @@ $students = $pdo->query($query)->fetchAll();
             </div>
         </div>
 
-        <div class="table-container" role="region" aria-label="Students table">
-            <table class="table" aria-describedby="studentsTableCaption">
-                <caption id="studentsTableCaption" class="sr-only">List of students with their information and actions</caption>
+        <div class="table-container">
+            <table class="table">
                 <thead>
                     <tr>
-                        <th scope="col">Student ID</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Mobile</th>
-                        <th scope="col">Address</th>
-                        <th scope="col">Actions</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Address</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="studentsTableBody">
+                <tbody>
                     <?php foreach ($students as $student): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($student['student_id']); ?></td>
@@ -463,13 +545,13 @@ $students = $pdo->query($query)->fetchAll();
                         <td><?php echo htmlspecialchars($student['address']); ?></td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-sm btn-primary btn-icon" onclick="editStudent(<?php echo htmlspecialchars(json_encode($student)); ?>)">
+                                <button class="btn btn-sm btn-primary" onclick="editStudent(<?php echo htmlspecialchars(json_encode($student)); ?>)">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <form action="" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="delete_student">
                                     <input type="hidden" name="student_id" value="<?php echo htmlspecialchars($student['student_id']); ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger btn-icon" onclick="return confirm('Are you sure you want to delete this student?')">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?')">
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
                                 </form>
@@ -489,47 +571,39 @@ $students = $pdo->query($query)->fetchAll();
                     <button class="modal-close" onclick="closeModal('addStudentModal')">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form class="modal-form" action="" method="POST">
+                    <form action="" method="POST">
                         <input type="hidden" name="action" value="add_student">
                         <div class="form-group">
-                            <label for="add_student_id">Student ID</label>
-                            <i class="fas fa-id-card form-icon"></i>
-                            <input type="text" id="add_student_id" name="student_id" required>
+                            <label>Student ID</label>
+                            <input type="text" name="student_id" required>
                         </div>
                         <div class="form-group">
-                            <label for="add_first_name">First Name</label>
-                            <i class="fas fa-user form-icon"></i>
-                            <input type="text" id="add_first_name" name="first_name" required>
+                            <label>First Name</label>
+                            <input type="text" name="first_name" required>
                         </div>
                         <div class="form-group">
-                            <label for="add_last_name">Last Name</label>
-                            <i class="fas fa-user form-icon"></i>
-                            <input type="text" id="add_last_name" name="last_name" required>
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" required>
                         </div>
                         <div class="form-group">
-                            <label for="add_middle_name">Middle Name</label>
-                            <i class="fas fa-user form-icon"></i>
-                            <input type="text" id="add_middle_name" name="middle_name">
+                            <label>Middle Name</label>
+                            <input type="text" name="middle_name">
                         </div>
                         <div class="form-group">
-                            <label for="add_email">Email</label>
-                            <i class="fas fa-envelope form-icon"></i>
-                            <input type="email" id="add_email" name="email" required>
+                            <label>Email</label>
+                            <input type="email" name="email" required>
                         </div>
                         <div class="form-group">
-                            <label for="add_password">Password</label>
-                            <i class="fas fa-lock form-icon"></i>
-                            <input type="password" id="add_password" name="password" required>
+                            <label>Password</label>
+                            <input type="password" name="password" required>
                         </div>
                         <div class="form-group">
-                            <label for="add_mobile">Mobile Number</label>
-                            <i class="fas fa-phone form-icon"></i>
-                            <input type="tel" id="add_mobile" name="mobile" required>
+                            <label>Mobile Number</label>
+                            <input type="tel" name="mobile" required>
                         </div>
                         <div class="form-group">
-                            <label for="add_address">Address</label>
-                            <i class="fas fa-map-marker-alt form-icon"></i>
-                            <input type="text" id="add_address" name="address" required>
+                            <label>Address</label>
+                            <input type="text" name="address" required>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal('addStudentModal')">
@@ -552,37 +626,31 @@ $students = $pdo->query($query)->fetchAll();
                     <button class="modal-close" onclick="closeModal('editStudentModal')">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form class="modal-form" action="" method="POST">
+                    <form action="" method="POST">
                         <input type="hidden" name="action" value="edit_student">
                         <input type="hidden" name="student_id" id="edit_student_id">
                         <div class="form-group">
-                            <label for="edit_first_name">First Name</label>
-                            <i class="fas fa-user form-icon"></i>
+                            <label>First Name</label>
                             <input type="text" name="first_name" id="edit_first_name" required>
                         </div>
                         <div class="form-group">
-                            <label for="edit_last_name">Last Name</label>
-                            <i class="fas fa-user form-icon"></i>
+                            <label>Last Name</label>
                             <input type="text" name="last_name" id="edit_last_name" required>
                         </div>
                         <div class="form-group">
-                            <label for="edit_middle_name">Middle Name</label>
-                            <i class="fas fa-user form-icon"></i>
+                            <label>Middle Name</label>
                             <input type="text" name="middle_name" id="edit_middle_name">
                         </div>
                         <div class="form-group">
-                            <label for="edit_email">Email</label>
-                            <i class="fas fa-envelope form-icon"></i>
+                            <label>Email</label>
                             <input type="email" name="email" id="edit_email" required>
                         </div>
                         <div class="form-group">
-                            <label for="edit_mobile">Mobile Number</label>
-                            <i class="fas fa-phone form-icon"></i>
+                            <label>Mobile Number</label>
                             <input type="tel" name="mobile" id="edit_mobile" required>
                         </div>
                         <div class="form-group">
-                            <label for="edit_address">Address</label>
-                            <i class="fas fa-map-marker-alt form-icon"></i>
+                            <label>Address</label>
                             <input type="text" name="address" id="edit_address" required>
                         </div>
                         <div class="modal-footer">
@@ -600,9 +668,31 @@ $students = $pdo->query($query)->fetchAll();
     </main>
 
     <script>
+        // Hamburger menu toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('show');
+            // Optionally add overlay for mobile
+            if (window.innerWidth <= 900) {
+                document.body.classList.toggle('sidebar-open');
+            }
+        });
+
+        // Optional: Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
+            }
+        });
+
         function filterStudents() {
             const query = document.getElementById('searchInput').value.toLowerCase();
-            const tbody = document.getElementById('studentsTableBody');
+            const tbody = document.querySelector('.table tbody');
             const rows = tbody.getElementsByTagName('tr');
 
             for (let i = 0; i < rows.length; i++) {
@@ -644,38 +734,21 @@ $students = $pdo->query($query)->fetchAll();
             }
         });
 
-        // Dropdown functionality
-        document.querySelector('.dropdown-toggle').addEventListener('click', function() {
-            document.querySelector('.dropdown-menu').classList.toggle('show');
-        });
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.user-dropdown')) {
-                document.querySelector('.dropdown-menu').classList.remove('show');
-            }
-        });
-
-        // Hamburger menu toggle
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('show');
-            // Optionally add overlay for mobile
-            if (window.innerWidth <= 900) {
-                document.body.classList.toggle('sidebar-open');
-            }
-        });
-
-        // Optional: Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.querySelector('.sidebar');
-            const toggle = document.getElementById('sidebarToggle');
-            if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
-                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
-                    sidebar.classList.remove('show');
-                    document.body.classList.remove('sidebar-open');
-                }
-            }
+    </script>
+    <script>
+        // Auto dismiss alerts with slide out animation
+        document.addEventListener('DOMContentLoaded', function () {
+            const alertList = document.querySelectorAll('.alert');
+            alertList.forEach(function (alert) {
+                setTimeout(() => {
+                    alert.classList.add('fade-out');
+                    setTimeout(() => {
+                        alert.classList.remove('show');
+                        alert.remove();
+                    }, 500); // match animation duration
+                }, 3000); // show alert for 3 seconds
+            });
         });
     </script>
 </body>

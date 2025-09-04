@@ -1,86 +1,3 @@
- <?php
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: index.php');
-    exit();
-}
-
-require_once '../php/db.php';
-
-// Handle professor actions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        
-        switch ($action) {
-            case 'add_professor':
-                $professor_id = $_POST['professor_id'];
-                $employee_id = $_POST['employee_id'];
-                $first_name = $_POST['first_name'];
-                $last_name = $_POST['last_name'];
-                $email = $_POST['email'];
-                $password = md5($_POST['password']);
-                $department = $_POST['department'];
-                $mobile = $_POST['mobile'];
-                
-                try {
-                    $stmt = $pdo->prepare("INSERT INTO professors (professor_id, employee_id, first_name, last_name, email, password, department, mobile, created_at, updated_at) 
-                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-                    $stmt->execute([$professor_id, $employee_id, $first_name, $last_name, $email, $password, $department, $mobile]);
-                    $success = "Professor added successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error adding professor: " . $e->getMessage();
-                }
-                break;
-                
-            case 'edit_professor':
-                $professor_id = $_POST['professor_id'];
-                $employee_id = $_POST['employee_id'];
-                $first_name = $_POST['first_name'];
-                $last_name = $_POST['last_name'];
-                $email = $_POST['email'];
-                $department = $_POST['department'];
-                $mobile = $_POST['mobile'];
-                
-                try {
-                    $stmt = $pdo->prepare("UPDATE professors SET employee_id = ?, first_name = ?, last_name = ?, email = ?, department = ?, mobile = ?, updated_at = NOW() 
-                                          WHERE professor_id = ?");
-                    $stmt->execute([$employee_id, $first_name, $last_name, $email, $department, $mobile, $professor_id]);
-                    $success = "Professor updated successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error updating professor: " . $e->getMessage();
-                }
-                break;
-                
-            case 'delete_professor':
-                $professor_id = $_POST['professor_id'];
-                
-                try {
-                    // Check if professor has classes assigned
-                    $check_stmt = $pdo->prepare("SELECT COUNT(*) as class_count FROM classes WHERE professor_id = ?");
-                    $check_stmt->execute([$professor_id]);
-                    $class_count = $check_stmt->fetch()['class_count'];
-                    
-                    if ($class_count > 0) {
-                        $error = "Cannot delete professor: There are $class_count classes assigned to this professor. Please reassign or delete these classes first.";
-                        // Optionally, provide a way to reassign or delete classes here
-                    } else {
-                        $stmt = $pdo->prepare("DELETE FROM professors WHERE professor_id = ?");
-                        $stmt->execute([$professor_id]);
-                        $success = "Professor deleted successfully!";
-                    }
-                } catch (PDOException $e) {
-                    $error = "Error deleting professor: " . $e->getMessage();
-                }
-                break;
-        }
-    }
-}
-
-// Get all professors
-$query = "SELECT * FROM professors";
-$professors = $pdo->query($query)->fetchAll();
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -427,9 +344,113 @@ $professors = $pdo->query($query)->fetchAll();
 
 </head>
 <body>
-    <?php include '../includes/navbar_admin.php'; ?>
 
-    <?php include '../includes/sidebar_admin.php'; ?>
+    <!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <button type="button" class="hamburger-menu" id="sidebarToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <span class="navbar-title">Global Reciprocal College</span>
+        <span class="navbar-title-mobile">GRC</span>
+    </div>
+    <div class="navbar-user">
+        <span>Welcome, Admin</span>
+        <div class="user-dropdown">
+            <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-cog" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="settings.html" class="dropdown-item">Settings</a>
+<a href="../index.html" class="dropdown-item">Logout</a>            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[navbar_admin] DOMContentLoaded');
+    // Dropdown functionality for multiple dropdowns
+    document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(event) {
+                console.log('[navbar_admin] dropdown toggle clicked');
+                event.stopPropagation();
+                // Close other dropdowns first
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.remove('show');
+                        const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                        if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                const isOpen = menu.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+            if (!event.target.closest('.user-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+    });
+});
+</script>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-item">
+            <a href="admin_dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="admin_manage_professors.html" class="sidebar-link active"><i class="fas fa-user-tie"></i> Manage Professors</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="admin_manage_students.html" class="sidebar-link"><i class="fas fa-user-graduate"></i> Manage Students</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="admin_manage_schedule.html" class="sidebar-link"><i class="fas fa-calendar-alt"></i> Manage Schedule</a>
+        </li>
+    </ul>
+</aside>
+
+<script>
+// Hamburger menu toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('show');
+    // Optionally add overlay for mobile
+    if (window.innerWidth <= 900) {
+        document.body.classList.toggle('sidebar-open');
+    }
+});
+
+// Optional: Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+        if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+            sidebar.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+    }
+});
+
+
+</script>
+
+
 
     <!-- Main Content -->
     <main class="main-content">
@@ -447,17 +468,9 @@ $professors = $pdo->query($query)->fetchAll();
                 </div>
             </div>
 
-        <?php if (isset($success)): ?>
-            <div class="alert alert-success fade show fade-in" role="alert">
-                <?php echo $success; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger fade show fade-in" role="alert">
-                <?php echo $error; ?>
-            </div>
-        <?php endif; ?>
+        <div class="alert alert-success fade show fade-in" role="alert">
+            Professor added successfully!
+        </div>
 
         <div class="table-container">
             <table class="table">
@@ -473,30 +486,78 @@ $professors = $pdo->query($query)->fetchAll();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($professors as $professor): ?>
                     <tr>
-                        <td><?php echo $professor['professor_id']; ?></td>
-                        <td><?php echo $professor['employee_id']; ?></td>
-                        <td><?php echo $professor['first_name'] . ' ' . $professor['last_name']; ?></td>
-                        <td><?php echo $professor['email']; ?></td>
-                        <td><?php echo $professor['department']; ?></td>
-                        <td><?php echo $professor['mobile']; ?></td>
+                        <td>P001</td>
+                        <td>E001</td>
+                        <td>John Doe</td>
+                        <td>john.doe@grc.edu</td>
+                        <td>Computer Science</td>
+                        <td>123-456-7890</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-sm btn-primary" onclick="editProfessor(<?php echo htmlspecialchars(json_encode($professor)); ?>)">
+                                <button class="btn btn-sm btn-primary" onclick="editProfessor({'professor_id':'P001','employee_id':'E001','first_name':'John','last_name':'Doe','email':'john.doe@grc.edu','department':'Computer Science','mobile':'123-456-7890'})">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <form action="" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="delete_professor">
-                                    <input type="hidden" name="professor_id" value="<?php echo $professor['professor_id']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this professor?')">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </form>
+                                <button class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this professor?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
                             </div>
                         </td>
                     </tr>
-                    <?php endforeach; ?>
+                    <tr>
+                        <td>P002</td>
+                        <td>E002</td>
+                        <td>Jane Smith</td>
+                        <td>jane.smith@grc.edu</td>
+                        <td>Mathematics</td>
+                        <td>234-567-8901</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-primary" onclick="editProfessor({'professor_id':'P002','employee_id':'E002','first_name':'Jane','last_name':'Smith','email':'jane.smith@grc.edu','department':'Mathematics','mobile':'234-567-8901'})">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this professor?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>P003</td>
+                        <td>E003</td>
+                        <td>Alice Johnson</td>
+                        <td>alice.johnson@grc.edu</td>
+                        <td>Physics</td>
+                        <td>345-678-9012</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-primary" onclick="editProfessor({'professor_id':'P003','employee_id':'E003','first_name':'Alice','last_name':'Johnson','email':'alice.johnson@grc.edu','department':'Physics','mobile':'345-678-9012'})">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this professor?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>P004</td>
+                        <td>E004</td>
+                        <td>Bob Brown</td>
+                        <td>bob.brown@grc.edu</td>
+                        <td>Chemistry</td>
+                        <td>456-789-0123</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-primary" onclick="editProfessor({'professor_id':'P004','employee_id':'E004','first_name':'Bob','last_name':'Brown','email':'bob.brown@grc.edu','department':'Chemistry','mobile':'456-789-0123'})">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this professor?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -595,9 +656,10 @@ $professors = $pdo->query($query)->fetchAll();
                             <button type="button" class="btn btn-secondary" onclick="closeModal('editProfessorModal')">
                                 <i class="fas fa-times"></i> Cancel
                             </button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" onclick="alert('Professor updated successfully!')">
                                 <i class="fas fa-save"></i> Update Professor
                             </button>
+
                         </div>
                     </form>
                 </div>

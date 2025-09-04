@@ -7,17 +7,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'professor') {
 
 require_once '../php/db.php';
 
-// Fetch professor data
-$professor_id = $_SESSION['user_id'] ?? 1; // Default for testing
+// Fetch professor data using session values
+$professor_id = $_SESSION['user_id'];
 $stmt = $pdo->prepare("SELECT * FROM professors WHERE professor_id = ?");
 $stmt->execute([$professor_id]);
 $professor = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Store professor data in session for form population
-$_SESSION['first_name'] = $professor['first_name'] ?? 'Test';
-$_SESSION['last_name'] = $professor['last_name'] ?? 'Professor';
-$_SESSION['email'] = $professor['email'] ?? 'test@example.com';
-$_SESSION['mobile'] = $professor['mobile'] ?? '123-456-7890';
+// Populate session fields only if values are available in DB
+if ($professor) {
+    $_SESSION['first_name'] = $professor['first_name'];
+    $_SESSION['last_name'] = $professor['last_name'];
+    $_SESSION['email'] = $professor['email'];
+    $_SESSION['mobile'] = $professor['mobile'];
+}
 
 // Get professor's subjects (from attendance_reports.php)
 $query = "SELECT s.*, c.class_id, c.class_code, c.schedule, c.room 
@@ -748,46 +750,9 @@ foreach ($subjects as $subject) {
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <button class="hamburger-menu" id="sidebarToggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <span class="navbar-title">Global Reciprocal College</span>
-            <span class="navbar-title-mobile">GRC</span>
-        </div>
-        <div class="navbar-user">
-            <span>Welcome, <?php echo $_SESSION['first_name']; ?></span>
-            <div class="user-dropdown">
-                <button class="dropdown-toggle">⚙️</button>
-                <div class="dropdown-menu">
-                    <a href="../admin/settings.php" class="dropdown-item">Settings</a>
-                    <a href="../php/logout.php" class="dropdown-item">Logout</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <?php include '../includes/navbar_professor.php'; ?>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <ul class="sidebar-menu">
-            <li class="sidebar-item">
-                <a href="professor_dashboard.php" class="sidebar-link active">Dashboard</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="manage_subjects.php" class="sidebar-link">Manage Subjects</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="professor_manage_schedule.php" class="sidebar-link">Manage Class</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="../admin/settings.php" class="sidebar-link">Settings</a>
-            </li>
-        </ul>
-    </aside>
+    <?php include '../includes/sidebar_professor.php'; ?>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -1238,38 +1203,7 @@ foreach ($subjects as $subject) {
                 }
             });
 
-            // Dropdown functionality
-            const dropdownToggle = document.querySelector('.dropdown-toggle');
-            const dropdownMenu = document.querySelector('.dropdown-menu');
-            
-            console.log('Dropdown elements found:', {
-                toggle: dropdownToggle,
-                menu: dropdownMenu
-            });
-            
-            if (dropdownToggle && dropdownMenu) {
-                dropdownToggle.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    console.log('Before toggle:', dropdownMenu.className);
-                    dropdownMenu.classList.toggle('show');
-                    console.log('After toggle:', dropdownMenu.className);
-                    console.log('Dropdown menu style:', window.getComputedStyle(dropdownMenu).display);
-                });
-
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!event.target.closest('.user-dropdown')) {
-                        dropdownMenu.classList.remove('show');
-                    }
-                });
-
-                // Prevent dropdown from closing when clicking inside it
-                dropdownMenu.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                });
-            } else {
-                console.error('Dropdown elements not found!');
-            }
+            // Dropdown behaviour is handled in the included navbar script
         });
     </script>
 </body>

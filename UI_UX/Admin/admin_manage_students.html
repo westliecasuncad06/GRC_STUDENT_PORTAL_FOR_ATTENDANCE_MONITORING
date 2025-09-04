@@ -1,92 +1,9 @@
- <?php
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: index.php');
-    exit();
-}
-
-require_once '../php/db.php';
-
-// Handle professor actions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        
-        switch ($action) {
-            case 'add_professor':
-                $professor_id = $_POST['professor_id'];
-                $employee_id = $_POST['employee_id'];
-                $first_name = $_POST['first_name'];
-                $last_name = $_POST['last_name'];
-                $email = $_POST['email'];
-                $password = md5($_POST['password']);
-                $department = $_POST['department'];
-                $mobile = $_POST['mobile'];
-                
-                try {
-                    $stmt = $pdo->prepare("INSERT INTO professors (professor_id, employee_id, first_name, last_name, email, password, department, mobile, created_at, updated_at) 
-                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-                    $stmt->execute([$professor_id, $employee_id, $first_name, $last_name, $email, $password, $department, $mobile]);
-                    $success = "Professor added successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error adding professor: " . $e->getMessage();
-                }
-                break;
-                
-            case 'edit_professor':
-                $professor_id = $_POST['professor_id'];
-                $employee_id = $_POST['employee_id'];
-                $first_name = $_POST['first_name'];
-                $last_name = $_POST['last_name'];
-                $email = $_POST['email'];
-                $department = $_POST['department'];
-                $mobile = $_POST['mobile'];
-                
-                try {
-                    $stmt = $pdo->prepare("UPDATE professors SET employee_id = ?, first_name = ?, last_name = ?, email = ?, department = ?, mobile = ?, updated_at = NOW() 
-                                          WHERE professor_id = ?");
-                    $stmt->execute([$employee_id, $first_name, $last_name, $email, $department, $mobile, $professor_id]);
-                    $success = "Professor updated successfully!";
-                } catch (PDOException $e) {
-                    $error = "Error updating professor: " . $e->getMessage();
-                }
-                break;
-                
-            case 'delete_professor':
-                $professor_id = $_POST['professor_id'];
-                
-                try {
-                    // Check if professor has classes assigned
-                    $check_stmt = $pdo->prepare("SELECT COUNT(*) as class_count FROM classes WHERE professor_id = ?");
-                    $check_stmt->execute([$professor_id]);
-                    $class_count = $check_stmt->fetch()['class_count'];
-                    
-                    if ($class_count > 0) {
-                        $error = "Cannot delete professor: There are $class_count classes assigned to this professor. Please reassign or delete these classes first.";
-                        // Optionally, provide a way to reassign or delete classes here
-                    } else {
-                        $stmt = $pdo->prepare("DELETE FROM professors WHERE professor_id = ?");
-                        $stmt->execute([$professor_id]);
-                        $success = "Professor deleted successfully!";
-                    }
-                } catch (PDOException $e) {
-                    $error = "Error deleting professor: " . $e->getMessage();
-                }
-                break;
-        }
-    }
-}
-
-// Get all professors
-$query = "SELECT * FROM professors";
-$professors = $pdo->query($query)->fetchAll();
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Professors - Global Reciprocal College</title>
+    <title>Manage Students - Global Reciprocal College</title>
     <link rel="stylesheet" href="../css/styles_fixed.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -349,14 +266,6 @@ $professors = $pdo->query($query)->fetchAll();
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
         }
-        .form-icon {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray);
-            font-size: 1rem;
-        }
         .alert {
             position: fixed;
             top: 20px;
@@ -423,101 +332,274 @@ $professors = $pdo->query($query)->fetchAll();
                 justify-content: center;
             }
         }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stats-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 4px solid var(--primary);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        .stats-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        .stats-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        .stats-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stats-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
     </style>
-
 </head>
 <body>
-    <?php include '../includes/navbar_admin.php'; ?>
 
-    <?php include '../includes/sidebar_admin.php'; ?>
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <button type="button" class="hamburger-menu" id="sidebarToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <span class="navbar-title">Global Reciprocal College</span>
+        <span class="navbar-title-mobile">GRC</span>
+    </div>
+    <div class="navbar-user">
+        <span>Welcome, Admin</span>
+        <div class="user-dropdown">
+            <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-cog" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="settings.html" class="dropdown-item">Settings</a>
+<a href="../index.html" class="dropdown-item">Logout</a>            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[navbar_admin] DOMContentLoaded');
+    // Dropdown functionality for multiple dropdowns
+    document.querySelectorAll('.user-dropdown').forEach(function(dropdown) {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(event) {
+                console.log('[navbar_admin] dropdown toggle clicked');
+                event.stopPropagation();
+                // Close other dropdowns first
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.remove('show');
+                        const otherToggle = otherMenu.closest('.user-dropdown')?.querySelector('.dropdown-toggle');
+                        if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                const isOpen = menu.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+            if (!event.target.closest('.user-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+    });
+});
+</script>
+
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-item">
+            <a href="admin_dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="admin_manage_professors.html" class="sidebar-link"><i class="fas fa-user-tie"></i> Manage Professors</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="admin_manage_students.html" class="sidebar-link active"><i class="fas fa-user-graduate"></i> Manage Students</a>
+        </li>
+        <li class="sidebar-item">
+            <a href="admin_manage_schedule.html" class="sidebar-link"><i class="fas fa-calendar-alt"></i> Manage Schedule</a>
+        </li>
+    </ul>
+</aside>
+
+<script>
+// Hamburger menu toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('show');
+    // Optionally add overlay for mobile
+    if (window.innerWidth <= 900) {
+        document.body.classList.toggle('sidebar-open');
+    }
+});
+
+// Optional: Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
+        if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+            sidebar.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+    }
+});
+
+
+</script>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" role="main" tabindex="-1">
             <div class="enhanced-header fade-in">
-                <h1 class="header-title"><i class="fas fa-chalkboard-teacher" style="margin-right: 15px;"></i>Manage Professors</h1>
+                <h1 class="header-title"><i class="fas fa-users" style="margin-right: 15px;"></i>Manage Students</h1>
                 <div class="header-actions">
                     <div class="search-container">
                         <i class="fas fa-search search-icon"></i>
-                        <input type="text" id="searchInput" class="search-input" placeholder="Search professors..." onkeyup="filterProfessors()">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search students..." onkeyup="filterStudents()">
                     </div>
-                    <button class="add-professor-btn" onclick="openModal('addProfessorModal')">
+                    <button class="add-professor-btn" onclick="openModal('addStudentModal')">
                         <i class="fas fa-plus"></i>
-                        Add Professor
+                        Add Student
                     </button>
                 </div>
             </div>
 
-        <?php if (isset($success)): ?>
-            <div class="alert alert-success fade show fade-in" role="alert">
-                <?php echo $success; ?>
-            </div>
-        <?php endif; ?>
 
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger fade show fade-in" role="alert">
-                <?php echo $error; ?>
+
+        <div class="stats-grid">
+            <div class="stats-card fade-in" tabindex="0">
+                <i class="fas fa-user-graduate" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                <div class="stats-number">150</div>
+                <div class="stats-label">Total Students</div>
             </div>
-        <?php endif; ?>
+            <div class="stats-card fade-in" tabindex="0">
+                <i class="fas fa-user-check" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                <div class="stats-number">12</div>
+                <div class="stats-label">New This Month</div>
+            </div>
+            <div class="stats-card fade-in" tabindex="0">
+                <i class="fas fa-envelope" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                <div class="stats-number">150</div>
+                <div class="stats-label">Unique Emails</div>
+            </div>
+        </div>
 
         <div class="table-container">
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Professor ID</th>
-                        <th>Employee ID</th>
+                        <th>Student ID</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Department</th>
                         <th>Mobile</th>
+                        <th>Address</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($professors as $professor): ?>
                     <tr>
-                        <td><?php echo $professor['professor_id']; ?></td>
-                        <td><?php echo $professor['employee_id']; ?></td>
-                        <td><?php echo $professor['first_name'] . ' ' . $professor['last_name']; ?></td>
-                        <td><?php echo $professor['email']; ?></td>
-                        <td><?php echo $professor['department']; ?></td>
-                        <td><?php echo $professor['mobile']; ?></td>
+                        <td>12345</td>
+                        <td>John Doe</td>
+                        <td>john@example.com</td>
+                        <td>1234567890</td>
+                        <td>123 Main St</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-sm btn-primary" onclick="editProfessor(<?php echo htmlspecialchars(json_encode($professor)); ?>)">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <form action="" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="delete_professor">
-                                    <input type="hidden" name="professor_id" value="<?php echo $professor['professor_id']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this professor?')">
+<button class="btn btn-sm btn-primary" onclick='editStudent({"student_id":"12345","first_name":"John","last_name":"Doe","middle_name":"","email":"john@example.com","mobile":"1234567890","address":"123 Main St"})'>
+    <i class="fas fa-edit"></i> Edit
+</button>
+                                <form action="#" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="delete_student">
+                                    <input type="hidden" name="student_id" value="12345">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?')">
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
                                 </form>
                             </div>
                         </td>
                     </tr>
-                    <?php endforeach; ?>
+                    <tr>
+                        <td>67890</td>
+                        <td>Jane Smith</td>
+                        <td>jane@example.com</td>
+                        <td>0987654321</td>
+                        <td>456 Elm St</td>
+                        <td>
+                            <div class="action-buttons">
+<button class="btn btn-sm btn-primary" onclick='editStudent({"student_id":"67890","first_name":"Jane","last_name":"Smith","middle_name":"","email":"jane@example.com","mobile":"0987654321","address":"456 Elm St"})'>
+    <i class="fas fa-edit"></i> Edit
+</button>
+                                <form action="#" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="delete_student">
+                                    <input type="hidden" name="student_id" value="67890">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Add Professor Modal -->
-        <div id="addProfessorModal" class="modal">
+        <!-- Add Student Modal -->
+        <div id="addStudentModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">Add New Professor</h3>
-                    <button class="modal-close" onclick="closeModal('addProfessorModal')">&times;</button>
+                    <h3 class="modal-title">Add New Student</h3>
+                    <button class="modal-close" onclick="closeModal('addStudentModal')">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form class="modal-form" action="" method="POST">
-                        <input type="hidden" name="action" value="add_professor">
+                    <form action="" method="POST">
+                        <input type="hidden" name="action" value="add_student">
                         <div class="form-group">
-                            <label>Professor ID</label>
-                            <input type="text" name="professor_id" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Employee ID</label>
-                            <input type="text" name="employee_id" required>
+                            <label>Student ID</label>
+                            <input type="text" name="student_id" required>
                         </div>
                         <div class="form-group">
                             <label>First Name</label>
@@ -528,6 +610,10 @@ $professors = $pdo->query($query)->fetchAll();
                             <input type="text" name="last_name" required>
                         </div>
                         <div class="form-group">
+                            <label>Middle Name</label>
+                            <input type="text" name="middle_name">
+                        </div>
+                        <div class="form-group">
                             <label>Email</label>
                             <input type="email" name="email" required>
                         </div>
@@ -536,19 +622,19 @@ $professors = $pdo->query($query)->fetchAll();
                             <input type="password" name="password" required>
                         </div>
                         <div class="form-group">
-                            <label>Department</label>
-                            <input type="text" name="department" required>
-                        </div>
-                        <div class="form-group">
                             <label>Mobile Number</label>
                             <input type="tel" name="mobile" required>
                         </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" name="address" required>
+                        </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" onclick="closeModal('addProfessorModal')">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('addStudentModal')">
                                 <i class="fas fa-times"></i> Cancel
                             </button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Add Professor
+                                <i class="fas fa-plus"></i> Add Student
                             </button>
                         </div>
                     </form>
@@ -556,21 +642,17 @@ $professors = $pdo->query($query)->fetchAll();
             </div>
         </div>
 
-        <!-- Edit Professor Modal -->
-        <div id="editProfessorModal" class="modal">
+        <!-- Edit Student Modal -->
+        <div id="editStudentModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">Edit Professor</h3>
-                    <button class="modal-close" onclick="closeModal('editProfessorModal')">&times;</button>
+                    <h3 class="modal-title">Edit Student</h3>
+                    <button class="modal-close" onclick="closeModal('editStudentModal')">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form class="modal-form" action="" method="POST">
-                        <input type="hidden" name="action" value="edit_professor">
-                        <input type="hidden" name="professor_id" id="edit_professor_id">
-                        <div class="form-group">
-                            <label>Employee ID</label>
-                            <input type="text" name="employee_id" id="edit_employee_id" required>
-                        </div>
+                    <form action="" method="POST">
+                        <input type="hidden" name="action" value="edit_student">
+                        <input type="hidden" name="student_id" id="edit_student_id">
                         <div class="form-group">
                             <label>First Name</label>
                             <input type="text" name="first_name" id="edit_first_name" required>
@@ -580,23 +662,27 @@ $professors = $pdo->query($query)->fetchAll();
                             <input type="text" name="last_name" id="edit_last_name" required>
                         </div>
                         <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" name="email" id="edit_email" required>
+                            <label>Middle Name</label>
+                            <input type="text" name="middle_name" id="edit_middle_name">
                         </div>
                         <div class="form-group">
-                            <label>Department</label>
-                            <input type="text" name="department" id="edit_department" required>
+                            <label>Email</label>
+                            <input type="email" name="email" id="edit_email" required>
                         </div>
                         <div class="form-group">
                             <label>Mobile Number</label>
                             <input type="tel" name="mobile" id="edit_mobile" required>
                         </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" name="address" id="edit_address" required>
+                        </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" onclick="closeModal('editProfessorModal')">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('editStudentModal')">
                                 <i class="fas fa-times"></i> Cancel
                             </button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Update Professor
+                                <i class="fas fa-save"></i> Update Student
                             </button>
                         </div>
                     </form>
@@ -628,7 +714,7 @@ $professors = $pdo->query($query)->fetchAll();
             }
         });
 
-        function filterProfessors() {
+        function filterStudents() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const tbody = document.querySelector('.table tbody');
             const rows = tbody.getElementsByTagName('tr');
@@ -654,15 +740,15 @@ $professors = $pdo->query($query)->fetchAll();
             document.getElementById(modalId).classList.remove('show');
         }
 
-        function editProfessor(professor) {
-            document.getElementById('edit_professor_id').value = professor.professor_id;
-            document.getElementById('edit_employee_id').value = professor.employee_id;
-            document.getElementById('edit_first_name').value = professor.first_name;
-            document.getElementById('edit_last_name').value = professor.last_name;
-            document.getElementById('edit_email').value = professor.email;
-            document.getElementById('edit_department').value = professor.department;
-            document.getElementById('edit_mobile').value = professor.mobile;
-            openModal('editProfessorModal');
+        function editStudent(student) {
+            document.getElementById('edit_student_id').value = student.student_id;
+            document.getElementById('edit_first_name').value = student.first_name;
+            document.getElementById('edit_last_name').value = student.last_name;
+            document.getElementById('edit_middle_name').value = student.middle_name || '';
+            document.getElementById('edit_email').value = student.email;
+            document.getElementById('edit_mobile').value = student.mobile;
+            document.getElementById('edit_address').value = student.address;
+            openModal('editStudentModal');
         }
 
         // Close modal when clicking outside

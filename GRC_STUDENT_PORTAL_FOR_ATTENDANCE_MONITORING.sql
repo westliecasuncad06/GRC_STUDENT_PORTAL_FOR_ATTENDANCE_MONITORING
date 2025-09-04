@@ -252,6 +252,22 @@ INSERT INTO `student_classes` (`enrollment_id`, `student_id`, `class_id`, `enrol
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `grievances`
+--
+
+CREATE TABLE `grievances` (
+  `grievance_id` int(11) NOT NULL,
+  `student_id` varchar(20) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `status` enum('Pending','In Progress','Resolved','Rejected') DEFAULT 'Pending',
+  `submitted_at` datetime NOT NULL,
+  `resolved_at` datetime DEFAULT NULL,
+  `admin_response` text DEFAULT NULL,
+  `admin_id` varchar(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
 -- Table structure for table `subjects`
 --
 

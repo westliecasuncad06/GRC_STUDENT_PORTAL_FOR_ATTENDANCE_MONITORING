@@ -515,43 +515,8 @@ $enrolled_classes = $stmt->fetchAll();
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <button class="hamburger-menu" id="sidebarToggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <span class="navbar-title">Global Reciprocal College</span>
-            <span class="navbar-title-mobile">GRC</span>
-        </div>
-        <div class="navbar-user">
-            <span>Welcome, <?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></span>
-            <div class="user-dropdown">
-                <button class="dropdown-toggle">⚙️</button>
-                <div class="dropdown-menu">
-                    <a href="../admin/settings.php" class="dropdown-item">Settings</a>
-                    <a href="../php/logout.php" class="dropdown-item">Logout</a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <ul class="sidebar-menu">
-            <li class="sidebar-item">
-                <a href="student_dashboard.php" class="sidebar-link">Dashboard</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="student_manage_schedule.php" class="sidebar-link active">My Subjects</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="../admin/settings.php" class="sidebar-link">Settings</a>
-            </li>
-        </ul>
-    </aside>
+    <?php include '../includes/navbar_student.php'; ?>
+    <?php include '../includes/sidebar_student.php'; ?>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -753,38 +718,7 @@ $enrolled_classes = $stmt->fetchAll();
             });
         });
 
-        // Dropdown functionality
-        document.querySelector('.dropdown-toggle').addEventListener('click', function() {
-            document.querySelector('.dropdown-menu').classList.toggle('show');
-        });
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.user-dropdown')) {
-                document.querySelector('.dropdown-menu').classList.remove('show');
-            }
-        });
-
-        // Hamburger menu toggle
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('show');
-            if (window.innerWidth <= 900) {
-                document.body.classList.toggle('sidebar-open');
-            }
-        });
-
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.querySelector('.sidebar');
-            const toggle = document.getElementById('sidebarToggle');
-            if (window.innerWidth <= 900 && sidebar.classList.contains('show')) {
-                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
-                    sidebar.classList.remove('show');
-                    document.body.classList.remove('sidebar-open');
-                }
-            }
-        });
 
         // Close modal when clicking outside modal content
         document.getElementById('attendanceModal').addEventListener('click', function(event) {

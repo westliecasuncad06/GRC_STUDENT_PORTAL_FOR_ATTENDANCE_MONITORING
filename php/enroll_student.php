@@ -5,11 +5,8 @@ require_once 'db.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
-    // Temporarily disable authentication for testing
-    $_SESSION['user_id'] = 'STU001';
-    $_SESSION['role'] = 'student';
-    // echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-    // exit();
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
