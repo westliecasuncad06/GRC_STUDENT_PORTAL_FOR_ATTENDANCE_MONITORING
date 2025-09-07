@@ -13,3 +13,4 @@ f# TODO: Update Logout Links
 - [ ] Edit UI_UX/Student/settings.html
 - [ ] Edit UI_UX/Student/student_dashboard.html
 - [ ] Edit UI_UX/Student/student_manage_schedule.html
+jhbygvhb
